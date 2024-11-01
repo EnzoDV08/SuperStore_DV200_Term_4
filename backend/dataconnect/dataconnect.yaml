@@ -1,0 +1,12 @@
+specVersion: "v1beta"
+serviceId: "SuperStore_DV200_Term_4"
+location: "us-central1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "fdcdb"
+      cloudSql:
+        instanceId: "SuperStore_DV200_Term_4-fdc"
+      # schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]
