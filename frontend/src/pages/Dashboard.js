@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { firestore, storage, auth } from "../firebaseConfig";
-import { collection, addDoc, doc, updateDoc, deleteDoc, getDoc, query, where, onSnapshot, setDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, deleteDoc, getDoc, getDocs, query, where, onSnapshot, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { FiBox, FiHeart, FiTruck, FiEye, FiStar, FiUser, FiLogOut, FiTrash2, FiMoreVertical } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -35,7 +35,7 @@ const Dashboard = () => {
     const [newUserName, setNewUserName] = useState(""); // New name for editing
     const [newUserEmail, setNewUserEmail] = useState(""); // New email for editing
     const [newPassword, setNewPassword] = useState(""); // New password for editing
-    const [confirmPassword, setConfirmPassword] = useState(""); // Confirm password field
+    const [confirmPassword, setConfirmPassword] = useState(""); 
     const [address, setAddress] = useState("");
     const [billingInfo, setBillingInfo] = useState({ cardNumber: "", expiryDate: "", cvv: "" });
     const navigate = useNavigate();
@@ -85,7 +85,9 @@ const Dashboard = () => {
         }
     }, [location.state]);
 
-    const fetchProducts = () => {
+ // Fetch products from Firestore
+   // Fetch products from Firestore
+const fetchProducts = () => {
     const user = auth.currentUser;
     if (user) {
         const productQuery = query(
@@ -93,14 +95,7 @@ const Dashboard = () => {
             where("userId", "==", user.uid)
         );
 
-        getDocs(productQuery).then((snapshot) => {
-            const productList = snapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-            setProducts(productList);
-        });
-
+        // Using onSnapshot to listen for real-time updates
         onSnapshot(productQuery, (snapshot) => {
             const productList = snapshot.docs.map((doc) => ({
                 id: doc.id,
@@ -111,9 +106,12 @@ const Dashboard = () => {
     }
 };
 
-useEffect(() => {
-    fetchProducts(); // Initial fetch on component mount
-}, []);
+ useEffect(() => {
+        fetchProducts(); // Initial fetch on component mount
+    }, []);
+
+
+   
 
    const fetchWishlistItems = () => {
         const user = auth.currentUser;
@@ -144,6 +142,20 @@ useEffect(() => {
         }
     };
 
+ const fetchAllProducts = async () => {
+        const productsRef = collection(firestore, "products");
+        const productsSnapshot = await getDocs(productsRef);
+        const allProducts = productsSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
+        setProducts(allProducts);
+    };
+
+    useEffect(() => {
+        fetchAllProducts();
+    }, []);
+    
     const handleSellerSignUp = async (e) => {
         e.preventDefault();
         const user = auth.currentUser;
@@ -268,6 +280,9 @@ useEffect(() => {
         }
     };
 
+  
+
+
 
     // eslint-disable-next-line no-unused-vars
 const handleRemoveProfileImage = async () => {
@@ -303,10 +318,22 @@ const handleRemoveProfileImage = async () => {
         await updateDoc(productDocRef, { isActive: !currentStatus });
     };
 
-    const handleDiscountChange = async (id, newDiscount) => {
+   const handleDiscountChange = async (id, newDiscount) => {
         const productDocRef = doc(firestore, "products", id);
         await updateDoc(productDocRef, { discountPercentage: newDiscount });
+        setProducts((prevProducts) =>
+            prevProducts.map((product) =>
+                product.id === id
+                    ? { ...product, discountPercentage: newDiscount }
+                    : product
+            )
+        );
     };
+
+    const calculateDiscountedPrice = (price, discount) => {
+        return price - (price * discount) / 100;
+    };
+
 
     const toggleDropdown = (id) => {
         setDropdownOpen((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -420,34 +447,26 @@ const handleRemoveProfileImage = async () => {
         justifyContent: "center",
         alignItems: "center",
     },
-    productTable: {
-        width: "100%",
-        borderSpacing: "0 15px",
-        marginBottom: "20px",
-    },
-    tableHeader: {
-        backgroundColor: "#f0f0f0",
-        padding: "20px",
-        fontWeight: "bold",
-        textAlign: "left",
-        fontSize: "18px",
-    },
-    tableRow: {
-        backgroundColor: "#fff",
-        padding: "15px",
-        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.05)",
-        borderRadius: "8px",
-        marginBottom: "10px",
-        fontSize: "16px",
-        transition: "transform 0.2s ease",
-    },
-    discountDropdown: {
-        padding: "8px",
-        borderRadius: "4px",
-        border: "1px solid #ddd",
-        backgroundColor: "#f9f9f9",
-        cursor: "pointer",
-    },
+            productTable: {
+            width: "100%",
+            borderSpacing: "0 15px",
+            marginBottom: "20px",
+        },
+
+   tableHeader: {
+            backgroundColor: "#f0f0f0",
+            padding: "20px",
+            fontWeight: "bold",
+            textAlign: "left",
+            fontSize: "18px",
+        },
+   discountDropdown: {
+            padding: "8px",
+            borderRadius: "4px",
+            border: "1px solid #ddd",
+            backgroundColor: "#f9f9f9",
+            cursor: "pointer",
+        },
     actionButton: {
         position: "relative",
         cursor: "pointer",
@@ -688,26 +707,28 @@ const handleRemoveProfileImage = async () => {
                                                 <td>{product.name}</td>
                                                 <td>{product.category}</td>
                                                 <td>{product.stock}</td>
-                                                <td>R{product.price.toFixed(2)}</td>
+                                                <td>R{calculateDiscountedPrice(product.price, product.discountPercentage).toFixed(2)}</td>
                                                 <td>
-                                                    <select
-                                                        value={product.discountPercentage}
-                                                        onChange={(e) => handleDiscountChange(product.id, e.target.value)}
-                                                        style={styles.discountDropdown}
-                                                    >
-                                                        <option value={0}>0%</option>
-                                                        <option value={5}>5%</option>
-                                                        <option value={10}>10%</option>
-                                                        <option value={15}>15%</option>
-                                                        <option value={20}>20%</option>
-                                                    </select>
-                                                </td>
-                                                <td>
+                                         <select
+                                        value={product.discountPercentage}
+                                        onChange={(e) =>
+                                            handleDiscountChange(product.id, parseFloat(e.target.value))
+                                        }
+                                        style={styles.discountDropdown}
+                                    >
+                                        <option value={0}>0%</option>
+                                        <option value={5}>5%</option>
+                                        <option value={10}>10%</option>
+                                        <option value={15}>15%</option>
+                                        <option value={20}>20%</option>
+                                    </select>
+                                </td>
+                                <td>
                                                     <div style={styles.actionButton}>
-                                                        <FiMoreVertical
-                                                            onClick={() => toggleDropdown(product.id)}
-                                                            style={{ cursor: "pointer" }}
-                                                        />
+                                        <FiMoreVertical
+                                            onClick={() => toggleDropdown(product.id)}
+                                            style={{ cursor: "pointer" }}
+                                        />
                                                         {dropdownOpen[product.id] && (
                                                             <div style={styles.dropdownMenu}>
                                                                 <div style={styles.dropdownItem} onClick={() => handleEditProduct(product.id)}>Edit</div>
@@ -728,38 +749,7 @@ const handleRemoveProfileImage = async () => {
                                 </button>
                             </div>
                         )}
-                        {activeSection === "wishlist" && (
-                            <div>
-                                <h2>Your Wishlist</h2>
-                                <p>Items you have added to your wishlist:</p>
-                                <table style={styles.productTable}>
-                                    <thead>
-                                        <tr>
-                                            <th style={styles.tableHeader}>Image</th>
-                                            <th style={styles.tableHeader}>Name</th>
-                                            <th style={styles.tableHeader}>Category</th>
-                                            <th style={styles.tableHeader}>Price</th>
-                                            <th style={styles.tableHeader}>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {wishlistItems.map((item) => (
-                                            <tr key={item.id} style={styles.tableRow}>
-                                                <td><img src={item.imageUrl} alt={item.name} style={{ width: "50px", borderRadius: "5px" }} /></td>
-                                                <td>{item.name}</td>
-                                                <td>{item.category}</td>
-                                                <td>R{item.price.toFixed(2)}</td>
-                                                <td>
-                                                    <button onClick={() => handleRemoveFromWishlist(item.id)} style={styles.actionButton}>
-                                                        Remove
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                      
                     </>
                 )}
 
@@ -916,6 +906,40 @@ const handleRemoveProfileImage = async () => {
                         </form>
                     </div>
                 )}
+
+
+  {activeSection === "wishlist" && (
+                            <div>
+                                <h2>Your Wishlist</h2>
+                                <p>Items you have added to your wishlist:</p>
+                                <table style={styles.productTable}>
+                                    <thead>
+                                        <tr>
+                                            <th style={styles.tableHeader}>Image</th>
+                                            <th style={styles.tableHeader}>Name</th>
+                                            <th style={styles.tableHeader}>Category</th>
+                                            <th style={styles.tableHeader}>Price</th>
+                                            <th style={styles.tableHeader}>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {wishlistItems.map((item) => (
+                                            <tr key={item.id} style={styles.tableRow}>
+                                                <td><img src={item.imageUrl} alt={item.name} style={{ width: "50px", borderRadius: "5px" }} /></td>
+                                                <td>{item.name}</td>
+                                                <td>{item.category}</td>
+                                                <td>R{item.price.toFixed(2)}</td>
+                                                <td>
+                                                    <button onClick={() => handleRemoveFromWishlist(item.id)} style={styles.actionButton}>
+                                                        Remove
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
 
                 {showAddProductForm && (
                     <div style={styles.formOverlay}>

@@ -1,16 +1,23 @@
 // src/components/ProductCard.js
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiHeart, FiShuffle, FiSearch, FiShoppingCart } from "react-icons/fi";
 import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
+import { CartContext } from "../contexts/CartContext"; // Make sure to import your CartContext
 
 const ProductCard = ({ product = {} }) => {
     const navigate = useNavigate();
+    const { addToCart } = useContext(CartContext); // Access the addToCart function from context
     const [hovered, setHovered] = useState(false);
     const [cartHovered, setCartHovered] = useState(false);
 
     const handleClick = () => {
-        navigate(`/product/${product.id || ""}`); // Safe navigation even if ID is missing
+        navigate(`/product/${product.id || ""}`);
+    };
+
+    const handleAddToCart = (e) => {
+        e.stopPropagation();
+        addToCart(product);
     };
 
     // Fallback values for properties
@@ -18,6 +25,8 @@ const ProductCard = ({ product = {} }) => {
     const name = product?.name || product?.title || "Product Name";
     const rating = product?.rating || 0;
     const price = product?.price ? product.price.toFixed(2) : "N/A";
+    const discountPercentage = product?.discountPercentage || 0;
+    const discountedPrice = discountPercentage > 0 ? (price - (price * discountPercentage) / 100).toFixed(2) : price;
 
     const renderStars = (rating = 0) => {
         const stars = [];
@@ -38,7 +47,7 @@ const ProductCard = ({ product = {} }) => {
             position: "relative",
             maxWidth: "280px",
             height: "420px",
-             borderRadius: "35px 0 35px 0", // Apply rounding to top-left and bottom-left corners
+            borderRadius: "35px 0 35px 0",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
             cursor: "pointer",
             transition: "transform 0.4s ease, box-shadow 0.4s ease",
@@ -47,7 +56,7 @@ const ProductCard = ({ product = {} }) => {
             display: "flex",
             flexDirection: "column",
             transform: hovered ? "scale(1.05)" : "scale(1)",
-            marginBottom:'20px',
+            marginBottom: "20px",
         },
         imageContainer: {
             position: "relative",
@@ -60,6 +69,30 @@ const ProductCard = ({ product = {} }) => {
             objectFit: "cover",
             transition: "transform 0.4s ease",
             transform: hovered ? "scale(1.1)" : "scale(1)",
+        },
+        discountLabel: {
+            position: "absolute",
+            top: "10px",
+            left: "10px",
+            backgroundColor: "#ff4c4c",
+            color: "#fff",
+            padding: "8px 14px",
+            fontWeight: "bold",
+            fontSize: "14px",
+            borderRadius: "8px 0 0 8px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1,
+            clipPath: "polygon(0 0, 100% 0, 85% 100%, 0% 100%)",
+        },
+        discountText: {
+            fontSize: "16px",
+            fontWeight: "bold",
+            marginRight: "4px",
+        },
+        percentSymbol: {
+            fontSize: "12px",
         },
         iconContainer: {
             position: "absolute",
@@ -91,16 +124,28 @@ const ProductCard = ({ product = {} }) => {
             fontWeight: "600",
             color: cartHovered ? "#333" : "#28a745",
             transition: "color 0.3s ease",
-            marginTop: "10px",
+            marginTop: "5px",
         },
-        priceAndRating: {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "10px",
+        priceContainer: {
+            textAlign: "center",
+            marginTop: "3px",
+        },
+        price: {
+            fontSize: "1.2rem",
+            fontWeight: "bold",
+            color: "#28a745",
+        },
+        oldPrice: {
             fontSize: "1rem",
-            color: "#333",
-            margin: "10px 0",
+            color: "#ff4c4c",
+            textDecoration: "line-through",
+            marginTop: "-10px",
+            display: "block",
+        },
+        ratingStars: {
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: "5px",
         },
         addToCartButton: {
             backgroundColor: cartHovered ? "#333" : "#28a745",
@@ -140,11 +185,13 @@ const ProductCard = ({ product = {} }) => {
             onMouseLeave={() => setHovered(false)}
         >
             <div style={styles.imageContainer}>
-                <img
-                    src={imageUrl}
-                    alt={name}
-                    style={styles.image}
-                />
+                <img src={imageUrl} alt={name} style={styles.image} />
+                {discountPercentage > 0 && (
+                    <div style={styles.discountLabel}>
+                        <span style={styles.discountText}>{discountPercentage}%</span>
+                        <span style={styles.percentSymbol}>OFF</span>
+                    </div>
+                )}
                 <div style={styles.iconContainer}>
                     {[{ icon: FiHeart, title: "Add to Wishlist" }, { icon: FiShuffle, title: "Compare" }, { icon: FiSearch, title: "Quick View" }].map(
                         ({ icon: Icon, title }, index) => (
@@ -155,16 +202,6 @@ const ProductCard = ({ product = {} }) => {
                                     ...(hovered ? styles.iconButtonHover : {}),
                                 }}
                                 title={title}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = "#28a745";
-                                    e.currentTarget.style.color = "#fff";
-                                    e.currentTarget.style.transform = "scale(1.1)";
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
-                                    e.currentTarget.style.color = "#333";
-                                    e.currentTarget.style.transform = "scale(1)";
-                                }}
                             >
                                 <Icon />
                             </div>
@@ -173,20 +210,22 @@ const ProductCard = ({ product = {} }) => {
                 </div>
             </div>
             <div style={styles.content}>
-                <div className="product-name" style={styles.name}>
-                    {name}
-                </div>
-                <div style={styles.priceAndRating}>
-                    <div>{renderStars(rating)}</div>
-                    <div>R{price}</div>
+                <div className="product-name" style={styles.name}>{name}</div>
+                <div style={styles.ratingStars}>{renderStars(rating)}</div>
+                <div style={styles.priceContainer}>
+                    {discountPercentage > 0 ? (
+                        <>
+                            <span style={styles.price}>R{discountedPrice}</span>
+                            <span style={styles.oldPrice}>R{price}</span>
+                        </>
+                    ) : (
+                        <span style={styles.price}>R{price}</span>
+                    )}
                 </div>
             </div>
             <button
                 style={styles.addToCartButton}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    alert("Added to cart");
-                }}
+                onClick={handleAddToCart}
                 onMouseEnter={() => setCartHovered(true)}
                 onMouseLeave={() => setCartHovered(false)}
             >
