@@ -142,20 +142,7 @@ const fetchProducts = () => {
         }
     };
 
- const fetchAllProducts = async () => {
-        const productsRef = collection(firestore, "products");
-        const productsSnapshot = await getDocs(productsRef);
-        const allProducts = productsSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-        }));
-        setProducts(allProducts);
-    };
 
-    useEffect(() => {
-        fetchAllProducts();
-    }, []);
-    
     const handleSellerSignUp = async (e) => {
         e.preventDefault();
         const user = auth.currentUser;
