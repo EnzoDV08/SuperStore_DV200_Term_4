@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { firestore, storage, auth } from "../firebaseConfig";
-import { collection, addDoc, doc, updateDoc, deleteDoc, getDoc, getDocs, query, where, onSnapshot, setDoc } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, deleteDoc, getDoc, query, where, onSnapshot, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { FiBox, FiHeart, FiTruck, FiEye, FiStar, FiUser, FiLogOut, FiTrash2, FiMoreVertical } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router-dom";
+import OrderManagement from "../components/OrderManagement";  // Seller Orders
+import OrderSummary from "../components/OrderSummary";  // Buyer Order Summary;
 import { signOut, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "firebase/auth";
 
 const Dashboard = () => {
@@ -37,35 +39,33 @@ const Dashboard = () => {
     const [newPassword, setNewPassword] = useState(""); // New password for editing
     const [confirmPassword, setConfirmPassword] = useState(""); 
     const [address, setAddress] = useState("");
+     const [orders, setOrders] = useState([]); // State to store orders
     const [billingInfo, setBillingInfo] = useState({ cardNumber: "", expiryDate: "", cvv: "" });
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchUserData = async () => {
-            const user = auth.currentUser;
-            if (user) {
-                console.log("User object:", user); // Log the entire user object to inspect properties
+useEffect(() => {
+    const fetchUserData = async () => {
+        const user = auth.currentUser;
+        if (user) {
+            console.log("User object:", user);
+            setUserName(user.displayName || "User");
+            setUserEmail(user.email);
+            setProfileImage(user.photoURL || "https://via.placeholder.com/100");
 
-                // Get user's name and email
-                setUserName(user.displayName || "User");
-                setUserEmail(user.email);
-
-                // Get profile image URL from Google account if available
-                const photoURL = user.photoURL || "https://via.placeholder.com/100"; // Placeholder image
-                console.log("Photo URL:", photoURL); // Log the photo URL for debugging
-                setProfileImage(photoURL);
-
-                // Check seller status in Firestore
-                const userDoc = await getDoc(doc(firestore, "users", user.uid));
-                if (userDoc.exists() && userDoc.data().sellerDetails?.isSeller) {
+            const userDoc = await getDoc(doc(firestore, "users", user.uid));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                if (userData.sellerDetails?.isSeller) {
                     setIsSeller(true);
+                    setStoreName(userData.sellerDetails.storeName || "");
+                    setBusinessType(userData.sellerDetails.businessType || "");
+                    setSellerDescription(userData.sellerDetails.sellerDescription || "");
                 }
-            } else {
-                console.warn("No user is currently authenticated.");
             }
-        };
-        fetchUserData();
-    }, []);
+        }
+    };
+    fetchUserData();
+}, []);
 
 
   useEffect(() => {
@@ -85,30 +85,73 @@ const Dashboard = () => {
         }
     }, [location.state]);
 
- // Fetch products from Firestore
-   // Fetch products from Firestore
-const fetchProducts = () => {
-    const user = auth.currentUser;
-    if (user) {
-        const productQuery = query(
-            collection(firestore, "products"),
-            where("userId", "==", user.uid)
-        );
+    // Fetch products from Firestore
+    const fetchProducts = () => {
+        const user = auth.currentUser;
+        if (user) {
+            const productQuery = query(
+                collection(firestore, "products"),
+                where("userId", "==", user.uid)
+            );
+            onSnapshot(productQuery, (snapshot) => {
+                const productList = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                setProducts(productList);
+            });
+        }
+    };
 
-        // Using onSnapshot to listen for real-time updates
-        onSnapshot(productQuery, (snapshot) => {
-            const productList = snapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-            setProducts(productList);
+   useEffect(() => {
+    const fetchOrders = () => {
+        const user = auth.currentUser;
+        if (user) {
+            // Fetch orders where user is the buyer
+            const ordersQuery = query(
+                collection(firestore, "orders"),
+                where("userId", "==", user.uid)
+            );
+
+            onSnapshot(ordersQuery, (snapshot) => {
+                const userOrders = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                setOrders(userOrders);
+            });
+        }
+    };
+    fetchOrders();
+}, []);
+
+const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+        const orderRef = doc(firestore, "orders", orderId);
+        await updateDoc(orderRef, {
+            status: newStatus,
+            updatedAt: new Date(),
         });
+        alert('Order status updated successfully!');
+    } catch (error) {
+        console.error("Error updating order status: ", error);
     }
 };
 
- useEffect(() => {
-        fetchProducts(); // Initial fetch on component mount
-    }, []);
+
+const handleOrderStatusUpdate = async (orderId, newStatus, deliveryDate) => {
+    try {
+        const orderRef = doc(firestore, 'orders', orderId);
+        await updateDoc(orderRef, {
+            status: newStatus,
+            deliveryDate: deliveryDate || null,
+        });
+        alert('Order status updated successfully!');
+    } catch (error) {
+        console.error("Error updating order status: ", error);
+    }
+};
+
 
 
    
@@ -144,44 +187,34 @@ const fetchProducts = () => {
 
 
     const handleSellerSignUp = async (e) => {
-        e.preventDefault();
-        const user = auth.currentUser;
-        if (user) {
-            const userRef = doc(firestore, "users", user.uid);
+    e.preventDefault();
+    const user = auth.currentUser;
+    if (user) {
+        const userRef = doc(firestore, "users", user.uid);
+        const userDoc = await getDoc(userRef);
 
-            // Check if the user document exists
-            const userDoc = await getDoc(userRef);
-
-            if (!userDoc.exists()) {
-                // If the document does not exist, create it first
-                await setDoc(userRef, {
-                    email: user.email,
-                    username: user.displayName || "New User", // You might want to get username input or set a default
-                    sellerDetails: {
-                        storeName,
-                        businessType,
-                        sellerDescription,
-                        isSeller: true,
-                    },
-                    createdAt: new Date(),
-                });
-            } else {
-                // If the document exists, update it with seller details
-                await updateDoc(userRef, {
-                    sellerDetails: {
-                        storeName,
-                        businessType,
-                        sellerDescription,
-                        isSeller: true,
-                    },
-                });
+        const sellerData = {
+            sellerDetails: {
+                isSeller: true,
+                storeName: storeName,
+                businessType: businessType,
+                sellerDescription: sellerDescription,
             }
+        };
 
-            setIsSeller(true);
-            setShowSellerSignUp(false);
+        // If the user document exists, update it; otherwise, create a new document with seller details
+        if (userDoc.exists()) {
+            await updateDoc(userRef, sellerData);
+        } else {
+            await setDoc(userRef, sellerData);
         }
-    };
 
+        setIsSeller(true);
+        setShowSellerSignUp(false); // Hide the sign-up form once completed
+    }
+};
+
+    
    const handleDeleteAccount = async () => {
         const user = auth.currentUser;
         if (isManualAccount) {
@@ -285,6 +318,26 @@ const handleRemoveProfileImage = async () => {
     }
 };
 
+const fetchOrders = () => {
+    const user = auth.currentUser;
+    if (user) {
+        const ordersQuery = query(
+            collection(firestore, "orders"),
+            where("userId", "==", user.uid)
+        );
+        onSnapshot(ordersQuery, (snapshot) => {
+            const orderList = snapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+            setOrders(orderList);
+        });
+    }
+};
+
+useEffect(() => {
+    fetchOrders();
+}, []);
 
 
  const handleRemoveFromWishlist = async (id) => {
@@ -590,6 +643,15 @@ const handleRemoveProfileImage = async () => {
         gridTemplateColumns: "1fr 1fr",
         gap: "20px",
     },
+    locationButton: {
+        padding: "8px",
+        borderRadius: "8px",
+        border: "1px solid #ddd",
+        width: "30%",
+        margin: "3px 0px 0px 2px",
+        boxShadow: "-1px 1px 2px rgba(0, 0, 0, 0.3)",
+        cursor: "pointer",
+        },
     formGroup: {
         display: "flex",
         flexDirection: "column",
@@ -600,13 +662,13 @@ const handleRemoveProfileImage = async () => {
         marginBottom: "8px",
         color: "#333",
     },
-    inputField: {
-        width: "100%",
+   inputField: {
+        boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.1)",
         padding: "12px",
         borderRadius: "8px",
         border: "1px solid #ddd",
         fontSize: "16px",
-        backgroundColor: "#f9f9f9",
+        backgroundColor: "rgba(0, 0, 0, 0.05)",
     },
     saveChangesButton: {
         gridColumn: "span 2",
@@ -619,159 +681,305 @@ const handleRemoveProfileImage = async () => {
         fontSize: "16px",
         marginTop: "20px",
     },
+ordersSection: {
+        maxWidth: '800px',
+        margin: '0 auto',
+        padding: '20px',
+        fontFamily: 'Arial, sans-serif',
+        backgroundColor: '#ffffff',
+        borderRadius: '8px',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    },
+    orderHeader: {
+        fontSize: '24px',
+        fontWeight: 'bold',
+        marginBottom: '20px',
+        textAlign: 'center',
+    },
+    orderItem: {
+        border: '1px solid #ddd',
+        padding: '15px',
+        borderRadius: '8px',
+        marginBottom: '15px',
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    orderItemRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginBottom: '10px',
+    },
+    orderDetailButton: {
+        backgroundColor: '#007bff',
+        color: 'white',
+        border: 'none',
+        padding: '8px 12px',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        textAlign: 'center',
+        transition: 'background-color 0.3s ease',
+    },
+    orderDetailButtonHover: {
+        backgroundColor: '#0056b3',
+    },
+    orderStatus: {
+        fontWeight: 'bold',
+        color: '#28a745', // Default color for completed orders
+    },
+    orderStatusPending: {
+        color: '#ffc107',
+    },
+    orderStatusPreparing: {
+        color: '#17a2b8',
+    },
+    sellerOrdersSection: {
+        maxWidth: '800px',
+        margin: '0 auto',
+        padding: '20px',
+        fontFamily: 'Arial, sans-serif',
+        backgroundColor: '#ffffff',
+        borderRadius: '8px',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    },
+    sellerOrderHeader: {
+        fontSize: '24px',
+        fontWeight: 'bold',
+        marginBottom: '20px',
+        textAlign: 'center',
+    },
+    sellerOrderItem: {
+        border: '1px solid #ddd',
+        padding: '15px',
+        borderRadius: '8px',
+        marginBottom: '15px',
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    sellerOrderItemRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginBottom: '10px',
+    },
+    sellerOrderStatus: {
+        fontWeight: 'bold',
+        color: '#ffc107', // Default color for pending orders
+    },
+    sellerOrderStatusPending: {
+        color: '#ffc107',
+    },
+    sellerOrderStatusPreparing: {
+        color: '#17a2b8',
+    },
+    sellerOrderStatusCompleted: {
+        color: '#28a745',
+    },
+    acceptOrderButton: {
+        backgroundColor: '#28a745',
+        color: 'white',
+        border: 'none',
+        padding: '8px 12px',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        textAlign: 'center',
+        marginRight: '8px',
+        transition: 'background-color 0.3s ease',
+    },
+    acceptOrderButtonHover: {
+        backgroundColor: '#218838',
+    },
+    updateOrderButton: {
+        backgroundColor: '#17a2b8',
+        color: 'white',
+        border: 'none',
+        padding: '8px 12px',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        textAlign: 'center',
+        transition: 'background-color 0.3s ease',
+    },
+    updateOrderButtonHover: {
+        backgroundColor: '#138496',
+    },
+    
 };
 
 
     return (
         <div style={styles.dashboardContainer}>
-             <div style={styles.sidebar}>
-    {/* User Profile Section */}
-    <img src={profileImage} alt="Profile" style={styles.profileImage} />
-    <div style={styles.userName}>{userName}</div>
-    <div style={styles.userEmail}>{userEmail}</div>
+        <div style={styles.sidebar}>
+            {/* User Profile Section */}
+            <img src={profileImage} alt="Profile" style={styles.profileImage} />
+            <div style={styles.userName}>{userName}</div>
+            <div style={styles.userEmail}>{userEmail}</div>
 
-                {/* Sidebar Navigation */}
-                {[{ label: "Dashboard", icon: <FiUser />, key: "dashboard" },
-                  { label: "Orders", icon: <FiBox />, key: "orders" },
-                  { label: "Tracking Orders", icon: <FiTruck />, key: "trackingorders" },
-                  { label: "Wishlist", icon: <FiHeart />, key: "wishlist" },
-                  { label: "Recently Viewed", icon: <FiEye />, key: "recentlyviewed" },
-                  { label: "Reviews", icon: <FiStar />, key: "reviews" },
-                  { label: "Account Details", icon: <FiUser />, key: "accountdetails" }]
-                  .map((item) => (
-                    <div
-                        key={item.key}
-                        style={{
-                            ...styles.sidebarItem,
-                            ...(activeSection === item.key ? styles.sidebarItemActive : {}),
-                        }}
-                        onClick={() => setActiveSection(item.key)}
-                    >
-                        <span>{item.icon}</span>
-                        {item.label}
-                    </div>
-                ))}
-                <div style={{ ...styles.sidebarItem, color: "red" }} onClick={() => setShowLogoutPopup(true)}>
-                    <FiLogOut /> Log out
+            {/* Sidebar Navigation */}
+            {[
+                { label: "Dashboard", icon: <FiUser />, key: "dashboard" },
+                { label: "Orders", icon: <FiBox />, key: "orders" },
+                { label: "Tracking Orders", icon: <FiTruck />, key: "trackingorders" },
+                { label: "Wishlist", icon: <FiHeart />, key: "wishlist" },
+                { label: "Recently Viewed", icon: <FiEye />, key: "recentlyviewed" },
+                { label: "Reviews", icon: <FiStar />, key: "reviews" },
+                { label: "Account Details", icon: <FiUser />, key: "accountdetails" }
+            ].map((item) => (
+                <div
+                    key={item.key}
+                    style={{
+                        ...styles.sidebarItem,
+                        ...(activeSection === item.key ? styles.sidebarItemActive : {}),
+                    }}
+                    onClick={() => setActiveSection(item.key)}
+                >
+                    <span>{item.icon}</span>
+                    {item.label}
                 </div>
-                <div style={{ ...styles.sidebarItem, color: "red" }} onClick={() => setShowDeletePopup(true)}>
-                    <FiTrash2 /> Delete Account
+            ))}
+            <div style={{ ...styles.sidebarItem, color: "red" }} onClick={() => setShowLogoutPopup(true)}>
+                <FiLogOut /> Log out
+            </div>
+            <div style={{ ...styles.sidebarItem, color: "red" }} onClick={() => setShowDeletePopup(true)}>
+                <FiTrash2 /> Delete Account
+            </div>
+        </div>
+
+        <div style={styles.content}>
+            {/* Show prompt to become a seller if user is not a seller */}
+            {activeSection === "dashboard" && !isSeller && (
+                <div>
+                    <h2>Become a Seller</h2>
+                    <p>Sign up as a seller to access the dashboard and manage your products.</p>
+                    <button style={styles.addButton} onClick={() => setShowSellerSignUp(true)}>
+                        Sign Up as Seller
+                    </button>
+                </div>
+            )}
+
+            {/* Show seller dashboard if user is a seller */}
+            {isSeller && (
+                <>
+                    {activeSection === "dashboard" && (
+                        <div>
+                            <h2>Welcome to your Dashboard</h2>
+                            <p>Manage your products and orders here.</p>
+
+                            {/* Seller’s Product Management Section */}
+                            <h3>Your Products</h3>
+                            <table style={styles.productTable}>
+                                <thead>
+                                    <tr>
+                                        <th style={styles.tableHeader}>Image</th>
+                                        <th style={styles.tableHeader}>Name</th>
+                                        <th style={styles.tableHeader}>Category</th>
+                                        <th style={styles.tableHeader}>Stock</th>
+                                        <th style={styles.tableHeader}>Price</th>
+                                        <th style={styles.tableHeader}>Discount</th>
+                                        <th style={styles.tableHeader}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {products.map((product) => (
+                                        <tr key={product.id} style={styles.tableRow}>
+                                            <td>
+                                                <img src={product.imageUrl} alt={product.name} style={{ width: "50px", borderRadius: "5px" }} />
+                                            </td>
+                                            <td>{product.name}</td>
+                                            <td>{product.category}</td>
+                                            <td>{product.stock}</td>
+                                            <td>R{calculateDiscountedPrice(product.price, product.discountPercentage).toFixed(2)}</td>
+                                            <td>
+                                                <select
+                                                    value={product.discountPercentage}
+                                                    onChange={(e) =>
+                                                        handleDiscountChange(product.id, parseFloat(e.target.value))
+                                                    }
+                                                    style={styles.discountDropdown}
+                                                >
+                                                    <option value={0}>0%</option>
+                                                    <option value={5}>5%</option>
+                                                    <option value={10}>10%</option>
+                                                    <option value={15}>15%</option>
+                                                    <option value={20}>20%</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <div style={styles.actionButton}>
+                                                    <FiMoreVertical
+                                                        onClick={() => toggleDropdown(product.id)}
+                                                        style={{ cursor: "pointer" }}
+                                                    />
+                                                    {dropdownOpen[product.id] && (
+                                                        <div style={styles.dropdownMenu}>
+                                                            <div style={styles.dropdownItem} onClick={() => handleEditProduct(product.id)}>
+                                                                Edit
+                                                            </div>
+                                                            <div style={styles.dropdownItem} onClick={() => handleAvailabilityToggle(product.id, product.isActive)}>
+                                                                {product.isActive ? "Make Unavailable" : "Make Available"}
+                                                            </div>
+                                                            <div style={styles.dropdownItemRemove} onClick={() => handleDeleteProduct(product.id)}>
+                                                                Remove
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <button style={styles.addButton} onClick={() => setShowAddProductForm(true)}>
+                                Add Product
+                            </button>
+                                    
+                             <h3>Your Orders</h3>
+                    <OrderManagement orders={orders} onUpdateStatus={handleOrderStatusUpdate} />
+                </div>
+            )}
+
+            {/* Order Summary Section */}
+            {activeSection === "orderSummary" && (
+                <div style={styles.ordersSection}>
+                    <h3>Your Order Summary</h3>
+                    <OrderSummary orders={orders} />
+                </div>
+            )}
+                </>
+            )}
+        </div>
+                  {/* Additional modals and popups */}
+        {activeSection === "dashboard" && showSellerSignUp && (
+            <div style={styles.formOverlay}>
+                <div style={styles.popupContainer}>
+                    <h3>Sign up as a Seller</h3>
+                    <form onSubmit={handleSellerSignUp}>
+                        <input
+                            type="text"
+                            placeholder="Store Name"
+                            value={storeName}
+                            onChange={(e) => setStoreName(e.target.value)}
+                            style={styles.inputField}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Business Type"
+                            value={businessType}
+                            onChange={(e) => setBusinessType(e.target.value)}
+                            style={styles.inputField}
+                        />
+                        <textarea
+                            placeholder="Seller Description"
+                            value={sellerDescription}
+                            onChange={(e) => setSellerDescription(e.target.value)}
+                            style={styles.inputField}
+                        />
+                        <button type="submit" style={styles.confirmButton}>Submit</button>
+                        <button onClick={() => setShowSellerSignUp(false)} style={styles.cancelButton}>Cancel</button>
+                    </form>
                 </div>
             </div>
-
-            <div style={styles.content}>
-                {activeSection === "dashboard" && !isSeller && (
-                    <div>
-                        <h2>Become a Seller</h2>
-                        <p>Sign up as a seller to access the dashboard and manage your products.</p>
-                        <button style={styles.addButton} onClick={() => setShowSellerSignUp(true)}>Sign Up as Seller</button>
-                    </div>
-                )}
-
-                {isSeller && (
-                    <>
-                        {activeSection === "dashboard" && (
-                            <div>
-                                <h2>Welcome to your Dashboard</h2>
-                                <p>Manage your products and account details here.</p>
-                                <h3>Your Products</h3>
-                                <table style={styles.productTable}>
-                                    <thead>
-                                        <tr>
-                                            <th style={styles.tableHeader}>Image</th>
-                                            <th style={styles.tableHeader}>Name</th>
-                                            <th style={styles.tableHeader}>Category</th>
-                                            <th style={styles.tableHeader}>Stock</th>
-                                            <th style={styles.tableHeader}>Price</th>
-                                            <th style={styles.tableHeader}>Discount</th>
-                                            <th style={styles.tableHeader}>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {products.map((product) => (
-                                            <tr key={product.id} style={styles.tableRow}>
-                                                <td><img src={product.imageUrl} alt={product.name} style={{ width: "50px", borderRadius: "5px" }} /></td>
-                                                <td>{product.name}</td>
-                                                <td>{product.category}</td>
-                                                <td>{product.stock}</td>
-                                                <td>R{calculateDiscountedPrice(product.price, product.discountPercentage).toFixed(2)}</td>
-                                                <td>
-                                         <select
-                                        value={product.discountPercentage}
-                                        onChange={(e) =>
-                                            handleDiscountChange(product.id, parseFloat(e.target.value))
-                                        }
-                                        style={styles.discountDropdown}
-                                    >
-                                        <option value={0}>0%</option>
-                                        <option value={5}>5%</option>
-                                        <option value={10}>10%</option>
-                                        <option value={15}>15%</option>
-                                        <option value={20}>20%</option>
-                                    </select>
-                                </td>
-                                <td>
-                                                    <div style={styles.actionButton}>
-                                        <FiMoreVertical
-                                            onClick={() => toggleDropdown(product.id)}
-                                            style={{ cursor: "pointer" }}
-                                        />
-                                                        {dropdownOpen[product.id] && (
-                                                            <div style={styles.dropdownMenu}>
-                                                                <div style={styles.dropdownItem} onClick={() => handleEditProduct(product.id)}>Edit</div>
-                                                                <div style={styles.dropdownItem} onClick={() => handleAvailabilityToggle(product.id, product.isActive)}>
-                                                                    {product.isActive ? "Make Unavailable" : "Make Available"}
-                                                                </div>
-                                                                <div style={styles.dropdownItemRemove} onClick={() => handleDeleteProduct(product.id)}>Remove</div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                                <button style={styles.addButton} onClick={() => setShowAddProductForm(true)}>
-                                    Add Product
-                                </button>
-                            </div>
-                        )}
-                      
-                    </>
-                )}
-
-                {activeSection === "dashboard" && showSellerSignUp && (
-                    <div style={styles.formOverlay}>
-                        <div style={styles.popupContainer}>
-                            <h3>Sign up as a Seller</h3>
-                            <form onSubmit={handleSellerSignUp}>
-                                <input
-                                    type="text"
-                                    placeholder="Store Name"
-                                    value={storeName}
-                                    onChange={(e) => setStoreName(e.target.value)}
-                                    style={styles.inputField}
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="Business Type"
-                                    value={businessType}
-                                    onChange={(e) => setBusinessType(e.target.value)}
-                                    style={styles.inputField}
-                                />
-                                <textarea
-                                    placeholder="Seller Description"
-                                    value={sellerDescription}
-                                    onChange={(e) => setSellerDescription(e.target.value)}
-                                    style={styles.inputField}
-                                />
-                                <button type="submit" style={styles.confirmButton}>Submit</button>
-                                <button onClick={() => setShowSellerSignUp(false)} style={styles.cancelButton}>Cancel</button>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
+        )}
                 {activeSection === "accountdetails" && (
                     <div style={styles.accountDetailsContainer}>
                         <h2>Account Details</h2>
@@ -785,7 +993,7 @@ const handleRemoveProfileImage = async () => {
                                     style={{ display: "none" }}
                                     id="profileImageUpload"
                                 />
-                                <label htmlFor="profileImageUpload" style={styles.uploadButton}>Upload New Image</label>
+                                <button onClick={() => {/*handleChangeProfileImage()*/}} style={styles.uploadButton}>Change Image</button> 
                                 <button onClick={() => handleRemoveProfileImage()} style={styles.removeButton}>Remove Image</button>
                             </div>
                         </div>
@@ -928,6 +1136,39 @@ const handleRemoveProfileImage = async () => {
                             </div>
                         )}
 
+                        <div>
+    <h3>Your Orders</h3>
+    <table style={styles.productTable}>
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {orders.map((order) => (
+                <tr key={order.id}>
+                    <td>{order.id}</td>
+                    <td>{order.items.map(item => item.name).join(", ")}</td>
+                    <td>{order.items.map(item => item.quantity).join(", ")}</td>
+                    <td>{order.status}</td>
+                    <td>
+                        {order.status === "Pending" && (
+                            <button onClick={() => updateOrderStatus(order.id, "Preparing")}>Accept Order</button>
+                        )}
+                        {order.status === "Preparing" && (
+                            <button onClick={() => updateOrderStatus(order.id, "Shipped")}>Mark as Shipped</button>
+                        )}
+                    </td>
+                </tr>
+            ))}
+        </tbody>
+    </table>
+</div>
+
                 {showAddProductForm && (
                     <div style={styles.formOverlay}>
                         <div style={styles.formContainer}>
@@ -980,7 +1221,7 @@ const handleRemoveProfileImage = async () => {
                     </div>
                 )}
             </div>
-        </div>
+
     );
 };
 

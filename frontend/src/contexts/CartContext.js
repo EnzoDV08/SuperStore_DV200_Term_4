@@ -8,24 +8,32 @@ export const CartContext = createContext();
 export const CartProvider = ({ children }) => {
     const user = useAuth();
     const [cart, setCart] = useState([]);
-    const cartDocRef = user ? doc(firestore, "carts", user.uid) : null;
+    const [initialized, setInitialized] = useState(false); // Track initialization
 
-    // Load cart from Firestore when the component mounts or the user changes
+    // Load cart from Firestore or localStorage once on mount or user change
     useEffect(() => {
         const loadCart = async () => {
-            if (user && cartDocRef) {
+            const savedCart = localStorage.getItem("cart");
+            if (savedCart) {
+                setCart(JSON.parse(savedCart));
+            } else if (user) {
+                const cartDocRef = doc(firestore, "carts", user.uid);
                 const cartDoc = await getDoc(cartDocRef);
                 if (cartDoc.exists()) {
-                    setCart(cartDoc.data().items || []);
+                    const items = cartDoc.data().items || [];
+                    setCart(items);
+                    localStorage.setItem("cart", JSON.stringify(items));
                 }
             }
+            setInitialized(true); // Mark as initialized after loading
         };
         loadCart();
-    }, [user, cartDocRef]);
+    }, [user]);
 
-    // Save cart to Firestore whenever it changes
+    // Save to Firestore and localStorage only if cart has been initialized
     useEffect(() => {
-        if (user && cartDocRef) {
+        if (user && initialized) {
+            const cartDocRef = doc(firestore, "carts", user.uid);
             const saveCartToFirestore = async () => {
                 try {
                     await setDoc(cartDocRef, { items: cart }, { merge: true });
@@ -35,9 +43,12 @@ export const CartProvider = ({ children }) => {
             };
             saveCartToFirestore();
         }
-    }, [cart, user, cartDocRef]);
+        if (initialized) {
+            localStorage.setItem("cart", JSON.stringify(cart)); // Update localStorage
+        }
+    }, [cart, user, initialized]);
 
-    // Function to add a product to the cart
+    // Cart manipulation functions
     const addToCart = (product) => {
         setCart((prevCart) => {
             const existingProduct = prevCart.find((item) => item.id === product.id);
@@ -51,7 +62,6 @@ export const CartProvider = ({ children }) => {
         });
     };
 
-    // Function to update quantity in local cart state
     const updateQuantity = (productId, quantity) => {
         setCart((prevCart) =>
             prevCart.map((item) =>
@@ -60,20 +70,19 @@ export const CartProvider = ({ children }) => {
         );
     };
 
-    // Function to remove item from cart
     const removeFromCart = (productId) => {
         setCart((prevCart) => prevCart.filter((item) => item.id !== productId));
     };
 
-    // Function to clear the cart
     const clearCart = () => {
         setCart([]);
-        if (user && cartDocRef) {
+        if (user) {
+            const cartDocRef = doc(firestore, "carts", user.uid);
             setDoc(cartDocRef, { items: [] }, { merge: true });
         }
+        localStorage.removeItem("cart");
     };
 
-    // Function to handle checkout and update stock in Firestore
     const checkoutCart = async () => {
         try {
             for (const item of cart) {
@@ -83,7 +92,7 @@ export const CartProvider = ({ children }) => {
                 });
             }
             alert("Purchase completed! Stock updated.");
-            clearCart(); // Clear cart after checkout
+            clearCart();
         } catch (error) {
             console.error("Error updating stock on checkout:", error);
         }

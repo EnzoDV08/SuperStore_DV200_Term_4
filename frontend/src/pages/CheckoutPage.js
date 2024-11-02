@@ -2,14 +2,14 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { CartContext } from '../contexts/CartContext';
 import { firestore } from '../firebaseConfig';
-import { doc, updateDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, addDoc } from 'firebase/firestore';
+import { auth } from '../firebaseConfig';
 
 const CheckoutPage = () => {
     const { cart: contextCart, removeFromCart, updateQuantity, clearCart } = useContext(CartContext);
     const [cart, setCart] = useState(contextCart);
 
-
-   // Load cart from localStorage if context cart is empty
+    // Load cart from localStorage if context cart is empty
     useEffect(() => {
         if (contextCart.length === 0) {
             const savedCart = localStorage.getItem("cart");
@@ -23,7 +23,7 @@ const CheckoutPage = () => {
         return cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
     };
 
-   const calculateDiscount = () => {
+    const calculateDiscount = () => {
         return cart.reduce((total, item) => {
             const discountAmount = (item.price * item.discountPercentage) / 100;
             return total + discountAmount * item.quantity;
@@ -36,15 +36,38 @@ const CheckoutPage = () => {
 
     const placeOrder = async () => {
         if (!cart || cart.length === 0) return; // Prevents empty orders
-        
-        alert('Processing payment...');
+
+        alert('Processing fake payment...');
         try {
+            const user = auth.currentUser;
+
+            // Create a new order document in Firestore
+            const orderData = {
+                userId: user.uid,
+                items: cart.map((item) => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                    discountPercentage: item.discountPercentage,
+                })),
+                totalAmount: parseFloat(finalTotal),
+                status: 'Pending',
+                createdAt: new Date(),
+                sellerId: cart[0]?.sellerId || "", // Assuming each item has a sellerId, this could be modified if needed
+            };
+
+            // Add the order to Firestore
+            await addDoc(collection(firestore, "orders"), orderData);
+
+            // Update product stock in Firestore
             for (const item of cart) {
                 const productRef = doc(firestore, 'products', item.id);
                 await updateDoc(productRef, {
                     stock: item.stock - item.quantity,
                 });
             }
+
             alert('Order placed successfully!');
             clearCart();
         } catch (error) {
@@ -179,13 +202,6 @@ const CheckoutPage = () => {
                 ))}
             </div>
 
-            <div style={styles.summary}>
-                <h2 style={styles.summaryHeader}>Order Summary</h2>
-                <p style={styles.summaryText}>Subtotal: R{total}</p>
-                <p style={styles.summaryText}>Total Discount: R{totalDiscount}</p>
-                <p style={styles.summaryText}>Total: R{finalTotal}</p>
-            </div>
-
             <div style={styles.billingInfo}>
                 <h2 style={styles.summaryHeader}>Billing Information</h2>
                 <input type="text" placeholder="Name on Card" style={styles.inputField} />
@@ -199,8 +215,8 @@ const CheckoutPage = () => {
                 <input type="text" placeholder="Country" style={styles.inputField} />
             </div>
 
-            <button style={styles.checkoutButton} onClick={placeOrder}>
-                Place Order
+         <button style={styles.checkoutButton} onClick={placeOrder}>
+                Place Order (Fake Payment)
             </button>
         </div>
     );
