@@ -5,6 +5,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { FiBox, FiHeart, FiTruck, FiEye, FiStar, FiUser, FiLogOut, FiTrash2, FiMoreVertical } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router-dom";
 import { signOut, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "firebase/auth";
+/* eslint-enable no-unused-vars */
 
 const Dashboard = () => {
     const location = useLocation();
@@ -24,19 +25,22 @@ const Dashboard = () => {
     const [showLogoutPopup, setShowLogoutPopup] = useState(false);
     const [showDeletePopup, setShowDeletePopup] = useState(false);
     const [password, setPassword] = useState("");
-    const [isSeller, setIsSeller] = useState(false); // Track if user is a seller
-    const [showSellerSignUp, setShowSellerSignUp] = useState(false); // Control seller sign-up form visibility
-    const [storeName, setStoreName] = useState("");
-    const [businessType, setBusinessType] = useState("");
-    const [sellerDescription, setSellerDescription] = useState("");
-    const [isManualAccount, setIsManualAccount] = useState(false); // Track account type
-    const [userName, setUserName] = useState(""); // Added userName state
-    const [userEmail, setUserEmail] = useState(""); // Added userEmail state
-    const [newUserName, setNewUserName] = useState(""); // New name for editing
-    const [newUserEmail, setNewUserEmail] = useState(""); // New email for editing
-    const [newPassword, setNewPassword] = useState(""); // New password for editing
-    const [confirmPassword, setConfirmPassword] = useState(""); // Confirm password field
+    const [isSeller, setIsSeller] = useState(false);
+    const [showSellerSignUp, setShowSellerSignUp] = useState(false); // eslint-disable-line no-unused-vars
+    const [storeName, setStoreName] = useState(""); // eslint-disable-line no-unused-vars
+    const [businessType, setBusinessType] = useState(""); // eslint-disable-line no-unused-vars
+    const [sellerDescription, setSellerDescription] = useState(""); // eslint-disable-line no-unused-vars
+    const [isManualAccount, setIsManualAccount] = useState(false);
+    const [userName, setUserName] = useState("");
+    const [userEmail, setUserEmail] = useState("");
+    const [newUserName, setNewUserName] = useState("");
+    const [newUserEmail, setNewUserEmail] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [address, setAddress] = useState("");
+    const [reorderLevel, setReorderLevel] = useState("");
+    const [supplierName, setSupplierName] = useState("");
+    const [sku, setSku] = useState("");
     const [billingInfo, setBillingInfo] = useState({ cardNumber: "", expiryDate: "", cvv: "" });
     const navigate = useNavigate();
 
@@ -144,15 +148,15 @@ useEffect(() => {
         }
     };
 
-    const handleSellerSignUp = async (e) => {
+       const handleSellerSignUp = async (e) => { // eslint-disable-line no-unused-vars
         e.preventDefault();
         const user = auth.currentUser;
         if (user) {
             const userRef = doc(firestore, "users", user.uid);
-
+    
             // Check if the user document exists
             const userDoc = await getDoc(userRef);
-
+    
             if (!userDoc.exists()) {
                 // If the document does not exist, create it first
                 await setDoc(userRef, {
@@ -177,12 +181,11 @@ useEffect(() => {
                     },
                 });
             }
-
+    
             setIsSeller(true);
             setShowSellerSignUp(false);
         }
     };
-
    const handleDeleteAccount = async () => {
         const user = auth.currentUser;
         if (isManualAccount) {
@@ -477,7 +480,7 @@ const handleRemoveProfileImage = async () => {
         cursor: "pointer",
         transition: "background-color 0.2s ease",
     },
-    formOverlay: {
+   formOverlay: {
         position: "fixed",
         top: 0,
         left: 0,
@@ -489,6 +492,60 @@ const handleRemoveProfileImage = async () => {
         justifyContent: "center",
         zIndex: 1000,
         transition: "opacity 0.3s ease-in-out",
+    },
+      cardContainer: {
+        width: "380px",
+        padding: "20px",
+        backgroundColor: "#ffffff",
+        borderRadius: "15px",
+        boxShadow: "0 6px 12px rgba(0, 0, 0, 0.2)",
+        textAlign: "center",
+    },
+      imagePlaceholder: {
+        width: "100%",
+        height: "150px",
+        backgroundColor: "#f0f0f0",
+        borderRadius: "8px",
+        marginBottom: "20px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#888",
+        fontSize: "16px",
+    },
+    inputGroup: {
+        display: "flex",
+        alignItems: "center",
+        marginBottom: "15px",
+        position: "relative",
+    },
+    randSymbol: {
+        position: "absolute",
+        left: "10px",
+        fontSize: "14px",
+        color: "#888",
+    },
+       inputField: {
+        width: "100%",
+        padding: "10px 10px 10px 25px", // Leave space for rand symbol
+        borderRadius: "6px",
+        border: "1px solid #ddd",
+        fontSize: "14px",
+        backgroundColor: "#f9f9f9",
+    },
+    inputFieldWithExample: {
+        width: "100%",
+        padding: "10px",
+        borderRadius: "6px",
+        border: "1px solid #ddd",
+        fontSize: "14px",
+        backgroundColor: "#f9f9f9",
+        marginBottom: "15px",
+    },
+    label: {
+        textAlign: "left",
+        fontSize: "14px",
+        marginBottom: "5px",
     },
     popupContainer: {
         backgroundColor: "#fff",
@@ -588,20 +645,6 @@ const handleRemoveProfileImage = async () => {
         display: "flex",
         flexDirection: "column",
     },
-    label: {
-        fontSize: "16px",
-        fontWeight: "500",
-        marginBottom: "8px",
-        color: "#333",
-    },
-    inputField: {
-        width: "100%",
-        padding: "12px",
-        borderRadius: "8px",
-        border: "1px solid #ddd",
-        fontSize: "16px",
-        backgroundColor: "#f9f9f9",
-    },
     saveChangesButton: {
         gridColumn: "span 2",
         padding: "14px",
@@ -617,12 +660,11 @@ const handleRemoveProfileImage = async () => {
 
 
     return (
-        <div style={styles.dashboardContainer}>
-             <div style={styles.sidebar}>
-    {/* User Profile Section */}
-    <img src={profileImage} alt="Profile" style={styles.profileImage} />
-    <div style={styles.userName}>{userName}</div>
-    <div style={styles.userEmail}>{userEmail}</div>
+       <div style={styles.dashboardContainer}>
+            <div style={styles.sidebar}>
+                <img src={profileImage} alt="Profile" style={styles.profileImage} />
+                <div style={styles.userName}>{userName}</div>
+                <div style={styles.userEmail}>{userEmail}</div>
 
                 {/* Sidebar Navigation */}
                 {[{ label: "Dashboard", icon: <FiUser />, key: "dashboard" },
@@ -653,7 +695,7 @@ const handleRemoveProfileImage = async () => {
                 </div>
             </div>
 
-            <div style={styles.content}>
+           <div style={styles.content}>
                 {isSeller ? (
                     <>
                         {activeSection === "dashboard" && (
@@ -720,7 +762,9 @@ const handleRemoveProfileImage = async () => {
                                 </button>
                             </div>
                         )}
-                        {activeSection === "wishlist" && (
+
+
+                       {activeSection === "wishlist" && (
                             <div>
                                 <h2>Your Wishlist</h2>
                                 <p>Items you have added to your wishlist:</p>
@@ -760,56 +804,130 @@ const handleRemoveProfileImage = async () => {
                         <button style={styles.addButton} onClick={() => setShowSellerSignUp(true)}>Sign Up as Seller</button>
                     </div>
                 )}
-
-                {showSellerSignUp && (
-                    <div style={styles.formOverlay}>
-                        <div style={styles.popupContainer}>
-                            <h3>Sign up as a Seller</h3>
-                            <form onSubmit={handleSellerSignUp}>
-                                <input
-                                    type="text"
-                                    placeholder="Store Name"
-                                    value={storeName}
-                                    onChange={(e) => setStoreName(e.target.value)}
-                                    style={styles.inputField}
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="Business Type"
-                                    value={businessType}
-                                    onChange={(e) => setBusinessType(e.target.value)}
-                                    style={styles.inputField}
-                                />
-                                <textarea
-                                    placeholder="Seller Description"
-                                    value={sellerDescription}
-                                    onChange={(e) => setSellerDescription(e.target.value)}
-                                    style={styles.inputField}
-                                />
-                                <button type="submit" style={styles.confirmButton}>Submit</button>
-                                <button onClick={() => setShowSellerSignUp(false)} style={styles.cancelButton}>Cancel</button>
-                            </form>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {showAddProductForm && (
-                <div style={styles.formOverlay}>
-                    <div style={styles.formContainer}>
-                        <h3>Add New Product</h3>
-                        <form onSubmit={handleProductSubmit}>
-                            <input type="text" placeholder="Product Name" value={productName} onChange={(e) => setProductName(e.target.value)} style={{ margin: "10px 0", padding: "10px" }} />
-                            <input type="number" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ margin: "10px 0", padding: "10px" }} />
-                            <input type="number" placeholder="Stock" value={stock} onChange={(e) => setStock(e.target.value)} style={{ margin: "10px 0", padding: "10px" }} />
-                            <input type="text" placeholder="Category" value={category} onChange={(e) => setCategory(e.target.value)} style={{ margin: "10px 0", padding: "10px" }} />
-                            <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} style={{ margin: "10px 0", padding: "10px", height: "80px" }} />
-                            <input type="file" onChange={(e) => setImage(e.target.files[0])} style={{ margin: "10px 0", padding: "10px" }} />
-                            <button type="submit" style={{ marginTop: "20px", padding: "10px", backgroundColor: "#007bff", color: "#fff", borderRadius: "5px", cursor: "pointer" }}>Add Product</button>
-                        </form>
-                    </div>
+                 
+                
+                 
+{showAddProductForm && (
+    <div style={styles.formOverlay}>
+        <div style={styles.uploadFormContainer}>
+            <h3 style={styles.uploadFormHeader}>Add New Product</h3>
+            <form onSubmit={handleProductSubmit} style={styles.uploadForm}>
+                
+                <div style={styles.formSection}>
+                    <label style={styles.label}>Product Name</label>
+                    <input
+                        type="text"
+                        placeholder="Enter product name"
+                        value={productName}
+                        onChange={(e) => setProductName(e.target.value)}
+                        style={styles.inputField}
+                    />
                 </div>
-            )}
+
+                <div style={styles.formSection}>
+                    <label style={styles.label}>Price (R)</label>
+                    <input
+                        type="number"
+                        placeholder="Enter price"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        style={styles.inputField}
+                    />
+                </div>
+
+                <div style={styles.formSection}>
+                    <label style={styles.label}>Stock Quantity</label>
+                    <input
+                        type="number"
+                        placeholder="Enter stock quantity"
+                        value={stock}
+                        onChange={(e) => setStock(e.target.value)}
+                        style={styles.inputField}
+                    />
+                </div>
+
+                <div style={styles.formSection}>
+                    <label style={styles.label}>Category</label>
+                    <input
+                        type="text"
+                        placeholder="Enter category"
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        style={styles.inputField}
+                    />
+                </div>
+
+                <div style={styles.formSection}>
+                    <label style={styles.label}>Product Description</label>
+                    <textarea
+                        placeholder="Enter product description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        style={{ ...styles.inputField, height: "80px" }}
+                    />
+                </div>
+
+                <div style={styles.formSection}>
+                    <label style={styles.label}>Reorder Level</label>
+                    <input
+                        type="number"
+                        placeholder="Enter reorder level"
+                        value={reorderLevel}
+                        onChange={(e) => setReorderLevel(e.target.value)}
+                        style={styles.inputField}
+                    />
+                </div>
+
+                <div style={styles.formSection}>
+                    <label style={styles.label}>Supplier Name</label>
+                    <input
+                        type="text"
+                        placeholder="Enter supplier name"
+                        value={supplierName}
+                        onChange={(e) => setSupplierName(e.target.value)}
+                        style={styles.inputField}
+                    />
+                </div>
+
+                <div style={styles.formSection}>
+                    <label style={styles.label}>SKU (Stock Keeping Unit)</label>
+                    <input
+                        type="text"
+                        placeholder="Enter SKU"
+                        value={sku}
+                        onChange={(e) => setSku(e.target.value)}
+                        style={styles.inputField}
+                    />
+                </div>
+
+                <div style={styles.formSection}>
+                    <label style={styles.label}>Discount Percentage (%)</label>
+                    <input
+                        type="number"
+                        placeholder="Enter discount"
+                        value={discountPercentage}
+                        onChange={(e) => setDiscountPercentage(e.target.value)}
+                        style={styles.inputField}
+                    />
+                </div>
+
+                <div style={styles.formSection}>
+                    <label style={styles.label}>Product Image</label>
+                    <input
+                        type="file"
+                        onChange={(e) => setImage(e.target.files[0])}
+                        style={styles.inputField}
+                    />
+                </div>
+
+                <button type="submit" style={styles.confirmButton}>Add Product</button>
+                <button onClick={() => setShowAddProductForm(false)} style={styles.cancelButton}>Cancel</button>
+            </form>
+        </div>
+    </div>
+)}
+
+
 
             {showLogoutPopup && (
                 <div style={styles.formOverlay}>
@@ -986,6 +1104,10 @@ const handleRemoveProfileImage = async () => {
             )}
         </div>
     </div>
+                
+            </div>
+
+  
 );
 };
 
