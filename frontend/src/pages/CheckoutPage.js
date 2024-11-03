@@ -8,7 +8,6 @@ const CheckoutPage = () => {
     const [cart, setCart] = useState([]);
     const [loading, setLoading] = useState(true);
 
-
     useEffect(() => {
         const loadUserCart = async () => {
             const user = auth.currentUser;
@@ -30,7 +29,7 @@ const CheckoutPage = () => {
         loadUserCart();
     }, [contextCart]);
 
-   useEffect(() => {
+    useEffect(() => {
         const saveCartToFirestore = async (updatedCart) => {
             const user = auth.currentUser;
             if (user) {
@@ -43,13 +42,20 @@ const CheckoutPage = () => {
     }, [cart]);
 
     const calculateTotal = () => {
-        return cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
+        return cart.reduce((total, item) => {
+            const price = item.price ?? 0;
+            const quantity = item.quantity ?? 1;
+            return total + price * quantity;
+        }, 0).toFixed(2);
     };
 
     const calculateDiscount = () => {
         return cart.reduce((total, item) => {
-            const discountAmount = (item.price * item.discountPercentage) / 100;
-            return total + discountAmount * item.quantity;
+            const price = item.price ?? 0;
+            const discountPercentage = item.discountPercentage ?? 0;
+            const discountAmount = (price * discountPercentage) / 100;
+            const quantity = item.quantity ?? 1;
+            return total + discountAmount * quantity;
         }, 0).toFixed(2);
     };
 
@@ -57,36 +63,33 @@ const CheckoutPage = () => {
     const totalDiscount = calculateDiscount();
     const finalTotal = (total - totalDiscount).toFixed(2);
 
-      const placeOrder = async () => {
-    const user = auth.currentUser;
-    if (!user || cart.length === 0) return;
+    const placeOrder = async () => {
+        const user = auth.currentUser;
+        if (!user || cart.length === 0) return;
 
-    const orderData = {
-        buyerId: user.uid,
-        items: cart.map((item) => ({
-            id: item.id,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-            sellerId: item.sellerId,
-        })),
-        totalAmount: finalTotal,
-        isApprovedBySeller: false,
-        createdAt: new Date(),
+        const orderData = {
+            buyerId: user.uid,
+            items: cart.map((item) => ({
+                id: item.id,
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+                sellerId: item.sellerId,
+            })),
+            totalAmount: finalTotal,
+            isApprovedBySeller: false,
+            createdAt: new Date(),
+        };
+        await addDoc(collection(firestore, "orders"), orderData);
+
+        for (const item of cart) {
+            const productRef = doc(firestore, 'products', item.id);
+            await updateDoc(productRef, { stock: item.stock - item.quantity });
+        }
+
+        alert("Order placed! Awaiting seller approval.");
+        clearCart();
     };
-    await addDoc(collection(firestore, "orders"), orderData);
-
-    for (const item of cart) {
-        const productRef = doc(firestore, 'products', item.id);
-        await updateDoc(productRef, { stock: item.stock - item.quantity });
-    }
-
-    alert("Order placed! Awaiting seller approval.");
-    clearCart();
-};
-
-
-
 
     const styles = {
         checkoutPage: {
@@ -189,7 +192,7 @@ const CheckoutPage = () => {
                     {cart.map((item) => (
                         <div key={item.id} style={styles.cartItem}>
                             <span style={styles.itemName}>{item.name}</span>
-                            <span style={styles.itemPrice}>R{item.price.toFixed(2)}</span>
+                            <span style={styles.itemPrice}>R{(item.price ?? 0).toFixed(2)}</span>
                             <span style={styles.quantityControl}>
                                 <button
                                     style={styles.quantityButton}
@@ -237,4 +240,3 @@ const CheckoutPage = () => {
 };
 
 export default CheckoutPage;
-
