@@ -15,8 +15,8 @@ import ProductDetails from "./pages/ProductDetails";
 import Wishlist from "./pages/Wishlist";
 import AccountDetails from "./pages/AccountDetails";
 import SellerDashboard from "./pages/SellerDashboard";
-import AccountBilling from "./pages/AccountBilling"; // New page import
-import OrderTracking from "./pages/OrderTracking"; // New page import
+import AccountBilling from "./pages/AccountBilling";
+import OrderTracking from "./pages/OrderTracking";
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";

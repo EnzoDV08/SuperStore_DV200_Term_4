@@ -1,18 +1,19 @@
-// src/pages/AccountDetails.js
-
 import React, { useState, useEffect } from "react";
-import { auth, firestore} from "../firebaseConfig";
+import { auth, firestore, storage } from "../firebaseConfig";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import Sidebar from "../components/Sidebar"; 
-import { useNavigate } from "react-router-dom"; // Import navigation
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import Sidebar from "../components/Sidebar";
+import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const AccountDetails = () => {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [profileImageURL, setProfileImageURL] = useState("");
-
-    const navigate = useNavigate(); // Initialize navigation
+    const [profileImagePath, setProfileImagePath] = useState("");
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -25,13 +26,14 @@ const AccountDetails = () => {
                     setLastName(data.lastName || "");
                     setEmail(data.email || "");
                     setProfileImageURL(data.profileImageURL || "");
+                    setProfileImagePath(data.profileImagePath || "");
                 }
             }
         };
         fetchUserData();
     }, []);
 
-    const handleUpdateProfile = async (e) => {
+     const handleUpdateProfile = async (e) => {
         e.preventDefault();
         const user = auth.currentUser;
         if (user) {
@@ -41,29 +43,89 @@ const AccountDetails = () => {
                     firstName,
                     lastName,
                     email,
-                    profileImageURL
+                    profileImageURL,
+                    profileImagePath,
                 });
-                alert("Profile updated successfully.");
+                toast.success("Profile updated successfully.");
             } catch (error) {
                 console.error("Error updating profile:", error);
+                toast.error("Failed to update profile.");
             }
         }
     };
 
+    const handleImageChange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    if (profileImagePath) {
+                        const previousRef = ref(storage, profileImagePath);
+                        await deleteObject(previousRef);
+                    }
+
+                    const filePath = `profileImages/${user.uid}/${file.name}`;
+                    const storageRef = ref(storage, filePath);
+                    await uploadBytes(storageRef, file);
+                    const downloadURL = await getDownloadURL(storageRef);
+
+                    await updateDoc(doc(firestore, "users", user.uid), {
+                        profileImageURL: downloadURL,
+                        profileImagePath: filePath,
+                    });
+
+                    setProfileImageURL(downloadURL);
+                    setProfileImagePath(filePath);
+                    toast.success("Profile image uploaded successfully.");
+                } catch (error) {
+                    console.error("Error uploading profile image:", error);
+                    toast.error("Failed to upload profile image.");
+                }
+            }
+        }
+    };
+
+    const handleRemoveImage = async () => {
+        const user = auth.currentUser;
+        if (user && profileImagePath) {
+            try {
+                const storageRef = ref(storage, profileImagePath);
+                await deleteObject(storageRef);
+
+                await updateDoc(doc(firestore, "users", user.uid), {
+                    profileImageURL: "",
+                    profileImagePath: "",
+                });
+
+                setProfileImageURL("https://via.placeholder.com/150");
+                setProfileImagePath("");
+                toast.success("Profile image removed successfully.");
+            } catch (error) {
+                console.error("Error removing profile image:", error);
+                toast.error("Failed to remove profile image.");
+            }
+        } else {
+            toast.error("No profile image to remove.");
+        }
+    };
 
     return (
         <div style={styles.container}>
+            <ToastContainer />
             <Sidebar
-                profileImageURL={profileImageURL}
+                 profileImageURL={profileImageURL}
                 firstName={firstName}
                 lastName={lastName}
                 email={email}
+                onImageChange={handleImageChange}
+                onRemoveImage={handleRemoveImage}
             />
             <div style={styles.mainContent}>
                 <div style={styles.imageButtons}>
                     <div 
                         style={{ ...styles.imageButton, backgroundImage: `url(${require('../assets/ImgButton1.png')})` }}
-                        onClick={() => navigate('/order-tracking')} // Add navigation
+                        onClick={() => navigate('/order-tracking')}
                     >
                         <div style={styles.overlay}>
                             <h3 style={styles.buttonTitle}>Order Tracking</h3>
@@ -72,7 +134,7 @@ const AccountDetails = () => {
                     </div>
                     <div 
                         style={{ ...styles.imageButton2, backgroundImage: `url(${require('../assets/ImgButton2.png')})` }}
-                        onClick={() => navigate('/account-billing')} // Add navigation
+                        onClick={() => navigate('/account-billing')}
                     >
                         <div style={styles.overlay}>
                             <h3 style={styles.buttonTitle}>Billing Address</h3>
@@ -148,7 +210,7 @@ const styles = {
         cursor: "pointer",
         transition: "transform 0.3s ease, box-shadow 0.3s ease",
     },
-     imageButton2: {
+    imageButton2: {
         width: "48%",
         height: "250px",
         backgroundColor: 'rgb(246,135,30)',

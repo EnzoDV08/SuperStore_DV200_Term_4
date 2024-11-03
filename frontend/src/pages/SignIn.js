@@ -2,9 +2,13 @@
 
 import React, { useState } from "react";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "../firebaseConfig";
+import { auth, firestore } from "../firebaseConfig";
+import { doc, setDoc } from "firebase/firestore";
 import { Link, useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const SignIn = () => {
     const [email, setEmail] = useState("");
@@ -18,7 +22,8 @@ const SignIn = () => {
         setError("");
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            navigate("/dashboard");
+            toast.success("Signed in successfully!");
+            navigate("/account-details");
         } catch (error) {
             setError("Invalid email or password.");
             console.error("Error signing in:", error);
@@ -28,24 +33,36 @@ const SignIn = () => {
     const handleGoogleSignIn = async () => {
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
-            navigate("/dashboard");
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            // Save user data in Firestore if new
+            await setDoc(doc(firestore, "users", user.uid), {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                profileImageURL: user.photoURL,
+                role: "buyer", // Default role for Google Sign-In
+                createdAt: new Date(),
+            }, { merge: true });
+
+            toast.success("Signed in with Google!");
+            navigate("/account-details");
         } catch (error) {
-            if (error.code === 'auth/popup-closed-by-user') {
-                setError("Popup closed before completing sign-in. Please try again.");
-            } else {
-                setError("Error with Google sign-in.");
-            }
+            setError("Error with Google sign-in.");
             console.error("Error with Google sign-in:", error);
         }
     };
 
     const styles = {
         container: {
-            padding: "40px",
+            padding: "50px",
             maxWidth: "400px",
             margin: "0 auto",
             textAlign: "center",
+            borderRadius: "10px",
+            boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)",
+            background: "white",
         },
         form: {
             display: "flex",
@@ -70,21 +87,25 @@ const SignIn = () => {
             cursor: "pointer",
         },
         button: {
-            padding: "10px",
+            padding: "12px",
             fontSize: "16px",
-            backgroundColor: "#333",
+            backgroundColor: "#4285F4",
             color: "white",
             border: "none",
             borderRadius: "5px",
             cursor: "pointer",
         },
         googleButton: {
-            backgroundColor: "#4285F4",
-            color: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#ffffff",
+            color: "#555",
             padding: "10px",
             fontSize: "16px",
             borderRadius: "5px",
             cursor: "pointer",
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
             marginTop: "10px",
         },
         errorMessage: {
@@ -93,13 +114,15 @@ const SignIn = () => {
             marginTop: "10px",
         },
         link: {
-            color: "#333",
+            color: "#4285F4",
             textDecoration: "underline",
+            fontWeight: "bold",
         },
     };
 
     return (
         <div style={styles.container}>
+            <ToastContainer />
             <h2>Sign In</h2>
             <form style={styles.form} onSubmit={handleSignIn}>
                 <input
@@ -126,7 +149,9 @@ const SignIn = () => {
                 </div>
                 {error && <p style={styles.errorMessage}>{error}</p>}
                 <button type="submit" style={styles.button}>Sign In</button>
-                <button type="button" onClick={handleGoogleSignIn} style={styles.googleButton}>Sign in with Google</button>
+                <button type="button" onClick={handleGoogleSignIn} style={styles.googleButton}>
+                    <FcGoogle size={20} style={{ marginRight: "10px" }} /> Sign in with Google
+                </button>
             </form>
             <p>
                 Don’t have an account? <Link to="/signup" style={styles.link}>Sign Up</Link>
