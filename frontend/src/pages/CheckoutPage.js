@@ -1,23 +1,46 @@
-// src/pages/CheckoutPage.js
 import React, { useContext, useEffect, useState } from 'react';
 import { CartContext } from '../contexts/CartContext';
-import { firestore } from '../firebaseConfig';
-import { collection, doc, updateDoc, addDoc } from 'firebase/firestore';
-import { auth } from '../firebaseConfig';
+import { firestore, auth } from '../firebaseConfig';
+import { collection, doc, updateDoc, addDoc, getDoc, setDoc } from 'firebase/firestore';
 
 const CheckoutPage = () => {
     const { cart: contextCart, removeFromCart, updateQuantity, clearCart } = useContext(CartContext);
-    const [cart, setCart] = useState(contextCart);
+    const [cart, setCart] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Load cart from localStorage if context cart is empty
+
     useEffect(() => {
-        if (contextCart.length === 0) {
-            const savedCart = localStorage.getItem("cart");
-            if (savedCart) setCart(JSON.parse(savedCart));
-        } else {
-            setCart(contextCart);
-        }
+        const loadUserCart = async () => {
+            const user = auth.currentUser;
+            if (user) {
+                const cartRef = doc(firestore, "carts", user.uid);
+                const cartSnapshot = await getDoc(cartRef);
+
+                if (cartSnapshot.exists()) {
+                    setCart(cartSnapshot.data().items || []);
+                } else {
+                    setCart(contextCart);
+                }
+            } else {
+                setCart(contextCart);
+            }
+            setLoading(false);
+        };
+
+        loadUserCart();
     }, [contextCart]);
+
+   useEffect(() => {
+        const saveCartToFirestore = async (updatedCart) => {
+            const user = auth.currentUser;
+            if (user) {
+                const cartRef = doc(firestore, "carts", user.uid);
+                await setDoc(cartRef, { items: updatedCart }, { merge: true });
+            }
+        };
+
+        saveCartToFirestore(cart);
+    }, [cart]);
 
     const calculateTotal = () => {
         return cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
@@ -34,47 +57,36 @@ const CheckoutPage = () => {
     const totalDiscount = calculateDiscount();
     const finalTotal = (total - totalDiscount).toFixed(2);
 
-    const placeOrder = async () => {
-        if (!cart || cart.length === 0) return; // Prevents empty orders
+      const placeOrder = async () => {
+    const user = auth.currentUser;
+    if (!user || cart.length === 0) return;
 
-        alert('Processing fake payment...');
-        try {
-            const user = auth.currentUser;
-
-            // Create a new order document in Firestore
-            const orderData = {
-                userId: user.uid,
-                items: cart.map((item) => ({
-                    id: item.id,
-                    name: item.name,
-                    quantity: item.quantity,
-                    price: item.price,
-                    discountPercentage: item.discountPercentage,
-                })),
-                totalAmount: parseFloat(finalTotal),
-                status: 'Pending',
-                createdAt: new Date(),
-                sellerId: cart[0]?.sellerId || "", // Assuming each item has a sellerId, this could be modified if needed
-            };
-
-            // Add the order to Firestore
-            await addDoc(collection(firestore, "orders"), orderData);
-
-            // Update product stock in Firestore
-            for (const item of cart) {
-                const productRef = doc(firestore, 'products', item.id);
-                await updateDoc(productRef, {
-                    stock: item.stock - item.quantity,
-                });
-            }
-
-            alert('Order placed successfully!');
-            clearCart();
-        } catch (error) {
-            console.error("Error placing order: ", error);
-            alert("Failed to place order. Please try again.");
-        }
+    const orderData = {
+        buyerId: user.uid,
+        items: cart.map((item) => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            sellerId: item.sellerId,
+        })),
+        totalAmount: finalTotal,
+        isApprovedBySeller: false,
+        createdAt: new Date(),
     };
+    await addDoc(collection(firestore, "orders"), orderData);
+
+    for (const item of cart) {
+        const productRef = doc(firestore, 'products', item.id);
+        await updateDoc(productRef, { stock: item.stock - item.quantity });
+    }
+
+    alert("Order placed! Awaiting seller approval.");
+    clearCart();
+};
+
+
+
 
     const styles = {
         checkoutPage: {
@@ -170,56 +182,59 @@ const CheckoutPage = () => {
     };
 
     return (
-        <div style={styles.checkoutPage}>
-            <h1 style={styles.header}>Checkout</h1>
-            <div style={styles.cartItems}>
-                {cart.map((item) => (
-                    <div key={item.id} style={styles.cartItem}>
-                        <span style={styles.itemName}>{item.name}</span>
-                        <span style={styles.itemPrice}>R{item.price.toFixed(2)}</span>
-                        <span style={styles.quantityControl}>
+        loading ? <p>Loading...</p> : (
+            <div style={styles.checkoutPage}>
+                <h1 style={styles.header}>Checkout</h1>
+                <div style={styles.cartItems}>
+                    {cart.map((item) => (
+                        <div key={item.id} style={styles.cartItem}>
+                            <span style={styles.itemName}>{item.name}</span>
+                            <span style={styles.itemPrice}>R{item.price.toFixed(2)}</span>
+                            <span style={styles.quantityControl}>
+                                <button
+                                    style={styles.quantityButton}
+                                    onClick={() => updateQuantity(item.id, -1)}
+                                >
+                                    -
+                                </button>
+                                {item.quantity}
+                                <button
+                                    style={styles.quantityButton}
+                                    onClick={() => updateQuantity(item.id, 1)}
+                                >
+                                    +
+                                </button>
+                            </span>
                             <button
-                                style={styles.quantityButton}
-                                onClick={() => updateQuantity(item.id, -1)}
+                                style={styles.removeButton}
+                                onClick={() => removeFromCart(item.id)}
                             >
-                                -
+                                Remove
                             </button>
-                            {item.quantity}
-                            <button
-                                style={styles.quantityButton}
-                                onClick={() => updateQuantity(item.id, 1)}
-                            >
-                                +
-                            </button>
-                        </span>
-                        <button
-                            style={styles.removeButton}
-                            onClick={() => removeFromCart(item.id)}
-                        >
-                            Remove
-                        </button>
-                    </div>
-                ))}
-            </div>
+                        </div>
+                    ))}
+                </div>
 
-            <div style={styles.billingInfo}>
-                <h2 style={styles.summaryHeader}>Billing Information</h2>
-                <input type="text" placeholder="Name on Card" style={styles.inputField} />
-                <input type="text" placeholder="Card Number" style={styles.inputField} />
-                <input type="text" placeholder="Expiry Date (MM/YY)" style={styles.inputField} />
-                <input type="text" placeholder="CVV" style={styles.inputField} />
-                <h2 style={styles.summaryHeader}>Shipping Address</h2>
-                <input type="text" placeholder="Address Line 1" style={styles.inputField} />
-                <input type="text" placeholder="City" style={styles.inputField} />
-                <input type="text" placeholder="Postal Code" style={styles.inputField} />
-                <input type="text" placeholder="Country" style={styles.inputField} />
-            </div>
+                <div style={styles.billingInfo}>
+                    <h2 style={styles.summaryHeader}>Billing Information</h2>
+                    <input type="text" placeholder="Name on Card" style={styles.inputField} />
+                    <input type="text" placeholder="Card Number" style={styles.inputField} />
+                    <input type="text" placeholder="Expiry Date (MM/YY)" style={styles.inputField} />
+                    <input type="text" placeholder="CVV" style={styles.inputField} />
+                    <h2 style={styles.summaryHeader}>Shipping Address</h2>
+                    <input type="text" placeholder="Address Line 1" style={styles.inputField} />
+                    <input type="text" placeholder="City" style={styles.inputField} />
+                    <input type="text" placeholder="Postal Code" style={styles.inputField} />
+                    <input type="text" placeholder="Country" style={styles.inputField} />
+                </div>
 
-         <button style={styles.checkoutButton} onClick={placeOrder}>
-                Place Order (Fake Payment)
-            </button>
-        </div>
+                <button style={styles.checkoutButton} onClick={placeOrder}>
+                    Place Order (Fake Payment)
+                </button>
+            </div>
+        )
     );
 };
 
 export default CheckoutPage;
+

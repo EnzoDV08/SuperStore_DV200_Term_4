@@ -1,13 +1,17 @@
-// src/components/ProductCard.js
+
+    // src/components/ProductCard.js
+
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiHeart, FiShuffle, FiSearch, FiShoppingCart } from "react-icons/fi";
 import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
-import { CartContext } from "../contexts/CartContext"; // Make sure to import your CartContext
+import { CartContext } from "../contexts/CartContext";
+import { doc, updateDoc, setDoc, getDoc, arrayUnion } from 'firebase/firestore';
+import { firestore, auth } from '../firebaseConfig';
 
 const ProductCard = ({ product = {} }) => {
     const navigate = useNavigate();
-    const { addToCart } = useContext(CartContext); // Access the addToCart function from context
+    const { addToCart } = useContext(CartContext);
     const [hovered, setHovered] = useState(false);
     const [cartHovered, setCartHovered] = useState(false);
 
@@ -15,9 +19,64 @@ const ProductCard = ({ product = {} }) => {
         navigate(`/product/${product.id || ""}`);
     };
 
-    const handleAddToCart = (e) => {
+    const handleAddToCart = async (e) => {
         e.stopPropagation();
-        addToCart(product);
+        const user = auth.currentUser;
+        if (!user) {
+            navigate('/signin');
+            return;
+        }
+
+        const cartRef = doc(firestore, "users", user.uid, "carts", user.uid);
+        const cartSnapshot = await getDoc(cartRef);
+
+        const cartItem = {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            quantity: 1,
+            addedBy: user.uid,
+            sellerId: product.sellerId || "unknown"
+        };
+
+        try {
+            if (cartSnapshot.exists()) {
+                await updateDoc(cartRef, {
+                    items: arrayUnion(cartItem)
+                });
+            } else {
+                await setDoc(cartRef, { items: [cartItem] });
+            }
+            addToCart(cartItem);
+        } catch (error) {
+            console.error("Error adding to cart:", error);
+        }
+    };
+
+    const handleAddToWishlist = async (e) => {
+        e.stopPropagation();
+        const user = auth.currentUser;
+        if (!user) {
+            navigate('/signin');
+            return;
+        }
+
+        const wishlistRef = doc(firestore, "users", user.uid, "wishlist", product.id);
+        const wishlistItem = {
+            id: product.id,
+            name: product.name,
+            imageUrl: product.imageUrl,
+            price: product.price,
+            category: product.category || "Uncategorized",
+            addedAt: new Date(),
+        };
+
+        try {
+            await setDoc(wishlistRef, wishlistItem);
+            alert("Product added to wishlist!");
+        } catch (error) {
+            console.error("Error adding to wishlist:", error);
+        }
     };
 
     // Fallback values for properties
@@ -193,20 +252,22 @@ const ProductCard = ({ product = {} }) => {
                     </div>
                 )}
                 <div style={styles.iconContainer}>
-                    {[{ icon: FiHeart, title: "Add to Wishlist" }, { icon: FiShuffle, title: "Compare" }, { icon: FiSearch, title: "Quick View" }].map(
-                        ({ icon: Icon, title }, index) => (
-                            <div
-                                key={index}
-                                style={{
-                                    ...styles.iconButton,
-                                    ...(hovered ? styles.iconButtonHover : {}),
-                                }}
-                                title={title}
-                            >
-                                <Icon />
-                            </div>
-                        )
-                    )}
+                    <div
+                        style={{
+                            ...styles.iconButton,
+                            ...(hovered ? styles.iconButtonHover : {}),
+                        }}
+                        title="Add to Wishlist"
+                        onClick={handleAddToWishlist}
+                    >
+                        <FiHeart />
+                    </div>
+                    <div style={styles.iconButton} title="Compare">
+                        <FiShuffle />
+                    </div>
+                    <div style={styles.iconButton} title="Quick View">
+                        <FiSearch />
+                    </div>
                 </div>
             </div>
             <div style={styles.content}>

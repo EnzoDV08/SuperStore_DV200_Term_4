@@ -1,18 +1,20 @@
 // src/components/Navbar.js
 
-import React, { useState, useEffect, useContext } from 'react'; // Add useContext here
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../firebaseConfig';
+import { auth, firestore } from '../firebaseConfig';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShoppingCart, faPhone, faHeart, faUser, faSearch, faGift, faChevronDown } from '@fortawesome/free-solid-svg-icons';
-import { CartContext } from '../contexts/CartContext'; // Import CartContext
+import { CartContext } from '../contexts/CartContext';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 const Navbar = () => {
   const [quickFindOpen, setQuickFindOpen] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
   const [hoveredIcon, setHoveredIcon] = useState(null);
   const [user] = useAuthState(auth);
+  const [userRole, setUserRole] = useState(null); 
   const [isSearchHovered, setIsSearchHovered] = useState(false);
   const [isIconHovered, setIsIconHovered] = useState(false);
   const [isLogoHovered, setIsLogoHovered] = useState(false);
@@ -21,13 +23,12 @@ const Navbar = () => {
   const [isBecomeSellerHovered, setIsBecomeSellerHovered] = useState(false);
   const [isBecomeSellerActive, setIsBecomeSellerActive] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isCartHovered, setIsCartHovered] = useState(false); 
-  const { cart } = useContext(CartContext); // Access cart from CartContext // New state for search term
+  const [isCartHovered, setIsCartHovered] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState(0);
+  const { cart, addToCart } = useContext(CartContext); 
   const navigate = useNavigate();
 
-  
-
-  useEffect(() => {
+   useEffect(() => {
     const handleScroll = () => {
       setIsSticky(window.scrollY > 100);
     };
@@ -35,35 +36,106 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0); // Calculate cart item count
+useEffect(() => {
+        const fetchCartItemCount = async () => {
+            if (user) {
+                const cartRef = doc(firestore, "carts", user.uid);
+                const cartSnapshot = await getDoc(cartRef);
+                if (cartSnapshot.exists()) {
+                    const items = cartSnapshot.data().items || [];
+                    const itemCount = items.reduce((total, item) => total + item.quantity, 0);
+                    setCartItemCount(itemCount);
+                }
+            } else {
+                const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
+                setCartItemCount(itemCount);
+            }
+        };
+
+        fetchCartItemCount();
+    }, [user, cart]);
+
+ useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user) {
+        const userDoc = await getDoc(doc(firestore, "users", user.uid));
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role); // 'buyer' or 'seller'
+        }
+      }
+    };
+    fetchUserRole();
+  }, [user]);
+
+ useEffect(() => {
+    // Update cart item count based on context
+    const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
+    setCartItemCount(itemCount);
+  }, [cart]);
+
+
+
+  const handleAddToCart = async (product) => {
+    if (!user) {
+      alert("Please sign in to add items to your cart.");
+      navigate('/signin');
+      return;
+    }
+
+    try {
+      const cartRef = doc(firestore, "carts", user.uid);
+      const cartSnapshot = await getDoc(cartRef);
+
+      if (cartSnapshot.exists()) {
+        await updateDoc(cartRef, {
+          items: arrayUnion({ ...product, quantity: 1 })
+        });
+      } else {
+        await setDoc(cartRef, {
+          items: [{ ...product, quantity: 1 }]
+        });
+      }
+
+      addToCart(product);
+      setCartItemCount((prevCount) => prevCount + 1);
+    } catch (error) {
+      console.error("Error adding to cart: ", error.code, error.message);
+      alert("Failed to add item to cart. Please check your permissions.");
+    }
+  };
+
 
   const toggleQuickFind = () => {
     setQuickFindOpen((prev) => !prev);
   };
 
-const handleIconClick = (icon) => {
+ const handleIconClick = (icon) => {
     if (!user) {
       navigate('/signin');
     } else if (icon === 'profile') {
-      navigate('/dashboard', { state: { section: 'dashboard' } });
+      if (userRole === "seller") {
+        navigate('/seller-dashboard');
+      } else {
+        navigate('/account-details');
+      }
     } else if (icon === 'wishlist') {
-      navigate('/dashboard', { state: { section: 'wishlist' } });
+      navigate('/wishlist');
     }
   };
 
 
-const handleBecomeSellerClick = () => {
-    if (!user) {
-      navigate('/signin');
-    } else {
-      navigate('/dashboard', { state: { section: 'dashboard' } });
-    }
-  };
-
-const handleDailyOffersClick = () => {
-  navigate('/products');
+  const handleBecomeSellerClick = () => {
+  if (!user) {
+    navigate('/signin');
+  } else {
+    navigate('/seller-dashboard'); // Navigate to seller dashboard if user is signed in
+  }
 };
 
+
+  const handleDailyOffersClick = () => {
+    navigate('/products');
+  };
 
   const handleSearchChange = (event) => {
     const query = event.target.value;
@@ -76,17 +148,17 @@ const handleDailyOffersClick = () => {
     }
   };
 
-const handleNewProductsClick = () => {
-  navigate('/products?filter=new');
-};
+  const handleNewProductsClick = () => {
+    navigate('/products?filter=new');
+  };
 
-const handleBestSalesClick = () => {
-  navigate('/products?filter=best_sales');
-};
+  const handleBestSalesClick = () => {
+    navigate('/products?filter=best_sales');
+  };
 
-const handleSpecialOffersClick = () => {
-  navigate('/products?filter=special_offers');
-};
+  const handleSpecialOffersClick = () => {
+    navigate('/products?filter=special_offers');
+  };
 
   const styles = {
     navbar: {
@@ -403,19 +475,19 @@ cartCounterHover: {
         style={{ ...styles.navbarItem, position: 'relative', marginRight: '25px' }}
         onMouseEnter={() => setHoveredIcon('cart')}
         onMouseLeave={() => setHoveredIcon(null)}
-        onClick={() => navigate('/checkout')} // Navigate to checkout page
+        onClick={() => navigate('/checkout')} 
       >
         <FontAwesomeIcon icon={faShoppingCart} style={styles.circleIcon('cart')} />
-        <span
-          style={{
-            ...styles.cartCounter,
-            ...(isCartHovered ? styles.cartCounterHover : {}), // Apply hover styles if hovered
-          }}
-          onMouseEnter={() => setIsCartHovered(true)}  // Add hover handlers for cart counter
-          onMouseLeave={() => setIsCartHovered(false)}
-        >
-          {cartItemCount}  
-        </span>
+              <span
+                style={{
+                  ...styles.cartCounter,
+                  ...(isCartHovered ? styles.cartCounterHover : {}),
+                }}
+                onMouseEnter={() => setIsCartHovered(true)}
+                onMouseLeave={() => setIsCartHovered(false)}
+              >
+                {cartItemCount}
+              </span>
       </span>
 
       <div style={styles.rightDividerLine}></div>
