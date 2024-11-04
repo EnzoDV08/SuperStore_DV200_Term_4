@@ -8,6 +8,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShoppingCart, faPhone, faHeart, faUser, faSearch, faGift, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { CartContext } from '../contexts/CartContext';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Navbar = () => {
   const [quickFindOpen, setQuickFindOpen] = useState(false);
@@ -105,19 +107,22 @@ useEffect(() => {
     setQuickFindOpen((prev) => !prev);
   };
 
- const handleIconClick = (icon) => {
-    if (!user) {
-      navigate('/signin');
-    } else if (icon === 'profile') {
-      if (userRole === "seller") {
-        navigate('/seller-dashboard');
-      } else {
-        navigate('/account-details');
-      }
-    } else if (icon === 'wishlist') {
-      navigate('/wishlist');
+const handleIconClick = (icon) => {
+  if (!user) {
+    if (icon === 'wishlist') {
+      toast.warn("Please sign in to access your wishlist."); // Show toast
     }
-  };
+    navigate('/signin'); // Redirect to sign-in page
+  } else if (icon === 'profile') {
+    if (userRole === "seller") {
+      navigate('/seller-dashboard');
+    } else {
+      navigate('/account-details');
+    }
+  } else if (icon === 'wishlist') {
+    navigate('/wishlist');
+  }
+};
 
 
   const handleBecomeSellerClick = () => {
@@ -640,6 +645,7 @@ cartCounterHover: {
     </div>
   </div>
 </nav>
+<ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
     </>
   );
 };

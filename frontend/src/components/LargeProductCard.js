@@ -1,118 +1,46 @@
-
-    // src/components/ProductCard.js
-import React, { useState, useContext, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+// src/components/LargeProductCard.js
+import React, { useState } from "react";
 import { FiHeart, FiShuffle, FiSearch, FiShoppingCart } from "react-icons/fi";
 import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
-import { CartContext } from "../contexts/CartContext";
-import { doc, updateDoc, setDoc, getDoc, arrayUnion, deleteDoc } from 'firebase/firestore';
-import { firestore, auth } from '../firebaseConfig';
+import { doc, setDoc } from "firebase/firestore";
+import { firestore, auth } from "../firebaseConfig";
+import { useNavigate } from "react-router-dom";
 
-const ProductCard = ({ product = {}, removeMode = false }) => {
+const LargeProductCard = ({ product = {} }) => {
     const navigate = useNavigate();
-    const { addToCart } = useContext(CartContext);
     const [hovered, setHovered] = useState(false);
     const [cartHovered, setCartHovered] = useState(false);
-    const [wishlistAdded, setWishlistAdded] = useState(false);
-    const [iconHovered, setIconHovered] = useState(null);
-    const [inCart, setInCart] = useState(false);
+    const [wishlistAdded, setWishlistAdded] = useState(false); // Track wishlist status
+    const [iconHovered, setIconHovered] = useState(null); // To track hover state for each icon
 
-useEffect(() => {
-    const checkWishlist = async () => {
+    const handleAddToWishlist = async (e) => {
+        e.stopPropagation();
         const user = auth.currentUser;
-        if (user) {
-            const wishlistRef = doc(firestore, "users", user.uid, "wishlist", product.id);
-            const wishlistDoc = await getDoc(wishlistRef);
-            if (wishlistDoc.exists()) {
-                setWishlistAdded(true);
-            }
+        if (!user) {
+            navigate('/signin');
+            return;
         }
-    };
-    checkWishlist();
-}, [product.id]);
 
-    const handleClick = () => {
-        navigate(`/product/${product.id || ""}`);
-    };
+        const wishlistRef = doc(firestore, "users", user.uid, "wishlist", product.id);
+        const wishlistItem = {
+            id: product.id,
+            name: product.name,
+            imageUrl: product.imageUrl,
+            price: product.discountedPrice || product.price,
+            category: product.category || "Uncategorized",
+            addedAt: new Date(),
+        };
 
-   const handleAddToCart = async (e) => {
-    e.stopPropagation();
-    const user = auth.currentUser;
-    if (!user) {
-        navigate('/signin');
-        return;
-    }
-
-    const cartRef = doc(firestore, "carts", user.uid);
-    const cartSnapshot = await getDoc(cartRef);
-
-    const cartItem = {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        discountedPrice: product.discount > 0 ? product.price * (1 - product.discount / 100) : product.price,
-        imageUrl: product.imageUrl || "https://via.placeholder.com/80",
-        discount: product.discount || 0,
-        quantity: 1,
-        addedBy: user.uid,
-        sellerId: product.sellerId || "unknown"
-    };
-
-    try {
-        if (cartSnapshot.exists()) {
-            await updateDoc(cartRef, {
-                items: arrayUnion(cartItem)
-            });
-        } else {
-            await setDoc(cartRef, { items: [cartItem] });
-        }
-        addToCart(cartItem);
-        setInCart(true);
-    } catch (error) {
-        console.error("Error adding to cart:", error);
-    }
-};
-
-const handleRemoveFromCart = async (e) => {
-    e.stopPropagation();
-    // Implement cart removal functionality here
-    setInCart(false);
-};
-
-
-
-   const handleAddToWishlist = async (e) => {
-    e.stopPropagation();
-    const user = auth.currentUser;
-    if (!user) {
-        navigate('/signin');
-        return;
-    }
-
-    const wishlistRef = doc(firestore, "users", user.uid, "wishlist", product.id);
-    const wishlistItem = {
-        id: product.id,
-        name: product.name,
-        imageUrl: product.imageUrl,
-        price: product.discountedPrice || product.price,
-        category: product.category || "Uncategorized",
-        addedAt: new Date(),
-    };
-
-    try {
-        if (wishlistAdded) {
-            await deleteDoc(wishlistRef);
-            setWishlistAdded(false);
-        } else {
+        try {
             await setDoc(wishlistRef, wishlistItem);
-            setWishlistAdded(true);
+            setWishlistAdded(true); // Change state to indicate addition to wishlist
+        } catch (error) {
+            console.error("Error adding to wishlist:", error);
         }
-    } catch (error) {
-        console.error("Error managing wishlist:", error);
-    }
-};
-    const imageUrl = product?.imageUrl || "https://via.placeholder.com/280x250";
-    const name = product?.name || product?.title || "Product Name";
+    };
+
+    const imageUrl = product?.imageUrl || "https://via.placeholder.com/350x300";
+    const name = product?.name || "Product Name";
     const rating = product?.rating || 0;
     const price = product?.price ? product.price.toFixed(2) : "N/A";
     const discount = product?.discount || 0;
@@ -135,8 +63,8 @@ const handleRemoveFromCart = async (e) => {
     const styles = {
         card: {
             position: "relative",
-            maxWidth: "280px",
-            height: "420px",
+            maxWidth: "400px",
+            height: "520px",
             borderRadius: "35px 0 35px 0",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
             cursor: "pointer",
@@ -146,7 +74,7 @@ const handleRemoveFromCart = async (e) => {
             display: "flex",
             flexDirection: "column",
             transform: hovered ? "scale(1.05)" : "scale(1)",
-            marginBottom: "20px",
+            marginBottom: "50px",
         },
         imageContainer: {
             position: "relative",
@@ -155,80 +83,64 @@ const handleRemoveFromCart = async (e) => {
         },
         image: {
             width: "100%",
-            height: "250px",
+            height: "320px",
             objectFit: "cover",
             transition: "transform 0.4s ease",
             transform: hovered ? "scale(1.1)" : "scale(1)",
         },
         discountLabel: {
             position: "absolute",
-            top: "10px",
-            left: "10px",
+            top: "15px",
+            left: "15px",
             backgroundColor: "#ff4c4c",
             color: "#fff",
-            padding: "8px 14px",
+            padding: "10px 16px",
             fontWeight: "bold",
-            fontSize: "14px",
+            fontSize: "16px",
             borderRadius: "8px 0 0 8px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
             zIndex: 1,
             clipPath: "polygon(0 0, 100% 0, 85% 100%, 0% 100%)",
         },
-        discountText: {
-            fontSize: "16px",
-            fontWeight: "bold",
-            marginRight: "4px",
-        },
-        percentSymbol: {
-            fontSize: "12px",
-        },
         iconContainer: {
             position: "absolute",
-            top: "10px",
-            right: "10px",
+            top: "15px",
+            right: "15px",
             display: "flex",
             flexDirection: "column",
-            gap: "10px",
+            gap: "12px",
             zIndex: 2,
         },
         iconButton: (hovering) => ({
             backgroundColor: hovering ? "#28a745" : "rgba(255, 255, 255, 0.9)",
-            color: hovering ? "#fff" : "#333",
-            transform: hovering ? "scale(1.1)" : "scale(1)",
             borderRadius: "50%",
-            padding: "10px",
+            padding: "12px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "18px",
+            fontSize: "20px",
+            color: hovering ? "#fff" : "#333",
             cursor: "pointer",
             transition: "background-color 0.3s ease, transform 0.3s ease",
+            transform: hovering ? "scale(1.1)" : "scale(1)",
         }),
-        iconButtonHover: {
-            backgroundColor: "#28a745",
-            color: "#fff",
-            transform: "scale(1.1)",
-        },
         name: {
-            fontSize: "1.5rem",
+            fontSize: "1.75rem",
             fontWeight: "600",
-            color: cartHovered ? "#333" : "#28a745",
-            transition: "color 0.3s ease",
-            marginTop: "5px",
+            color: "#28a745",
+            marginTop: "10px",
+            textAlign: "center",
         },
         priceContainer: {
             textAlign: "center",
-            marginTop: "3px",
+            marginTop: "8px",
         },
         price: {
-            fontSize: "1.2rem",
+            fontSize: "1.5rem",
             fontWeight: "bold",
             color: "#28a745",
         },
         oldPrice: {
-            fontSize: "1rem",
+            fontSize: "1.2rem",
             color: "#ff4c4c",
             textDecoration: "line-through",
             marginTop: "-10px",
@@ -237,25 +149,25 @@ const handleRemoveFromCart = async (e) => {
         ratingStars: {
             display: "flex",
             justifyContent: "center",
-            marginBottom: "5px",
+            marginBottom: "10px",
         },
         addToCartButton: {
             backgroundColor: cartHovered ? "#333" : "#28a745",
             color: "#fff",
-            padding: "10px 20px",
+            padding: "12px 24px",
             borderRadius: "30px",
-            fontSize: "0.9rem",
+            fontSize: "1rem",
             fontWeight: "600",
             cursor: "pointer",
             border: "none",
             position: "absolute",
-            bottom: "-20px",
+            bottom: "-25px",
             left: "50%",
             transform: "translate(-50%, 0)",
             display: hovered ? "flex" : "none",
             alignItems: "center",
             justifyContent: "center",
-            gap: "8px",
+            gap: "10px",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
             transition: "background-color 0.3s ease, transform 0.3s ease",
         },
@@ -269,17 +181,18 @@ const handleRemoveFromCart = async (e) => {
         },
     };
 
-     return (
-          <div
+    return (
+       <div
             style={styles.card}
-            onClick={handleClick}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
             <div style={styles.imageContainer}>
-                <img src={product.imageUrl} alt={product.name} style={styles.image} />
-                {product.discount > 0 && (
-                    <div style={styles.discountLabel}>{product.discount}% OFF</div>
+                <img src={imageUrl} alt={name} style={styles.image} />
+                {discount > 0 && (
+                    <div style={styles.discountLabel}>
+                        {discount}% OFF
+                    </div>
                 )}
                 <div style={styles.iconContainer}>
                     <div
@@ -291,26 +204,16 @@ const handleRemoveFromCart = async (e) => {
                     >
                         <FiHeart />
                     </div>
-                    <div
-                        style={styles.iconButton(iconHovered === 'compare')}
-                        onMouseEnter={() => setIconHovered('compare')}
-                        onMouseLeave={() => setIconHovered(null)}
-                        title="Compare"
-                    >
+                    <div style={styles.iconButton(iconHovered === 'compare')} title="Compare">
                         <FiShuffle />
                     </div>
-                    <div
-                        style={styles.iconButton(iconHovered === 'quickview')}
-                        onMouseEnter={() => setIconHovered('quickview')}
-                        onMouseLeave={() => setIconHovered(null)}
-                        title="Quick View"
-                    >
+                    <div style={styles.iconButton(iconHovered === 'quickview')} title="Quick View">
                         <FiSearch />
                     </div>
                 </div>
             </div>
             <div style={styles.content}>
-                <div className="product-name" style={styles.name}>{name}</div>
+                <div style={styles.name}>{name}</div>
                 <div style={styles.ratingStars}>{renderStars(rating)}</div>
                 <div style={styles.priceContainer}>
                     {discount > 0 ? (
@@ -325,14 +228,13 @@ const handleRemoveFromCart = async (e) => {
             </div>
             <button
                 style={styles.addToCartButton}
-                onClick={handleAddToCart}
                 onMouseEnter={() => setCartHovered(true)}
                 onMouseLeave={() => setCartHovered(false)}
             >
-                <FiShoppingCart style={{ marginRight: "8px" }} /> Add to Cart
+                <FiShoppingCart /> Add to Cart
             </button>
         </div>
     );
 };
 
-export default ProductCard;
+export default LargeProductCard;

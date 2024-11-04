@@ -49,6 +49,7 @@ useEffect(() => {
             padding: '20px',
             maxWidth: '1200px',
             margin: '0 auto',
+            marginTop: '80px',
             fontFamily: 'Arial, sans-serif',
             backgroundColor: '#f8f9fa',
             borderRadius: '8px',

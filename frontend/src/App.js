@@ -1,7 +1,5 @@
-// src/App.js
-
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, firestore } from "./firebaseConfig";
 import HomePage from "./pages/HomePage";
@@ -20,11 +18,12 @@ import OrderTracking from "./pages/OrderTracking";
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import Breadcrumb from "./components/Breadcrumbs"; // Import Breadcrumb component
 import { doc, getDoc } from "firebase/firestore";
 
 function App() {
     const [user, setUser] = useState(null);
-    const [userRole, setUserRole] = useState(null); // Track user role for navigation
+    const [userRole, setUserRole] = useState(null);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -42,11 +41,18 @@ function App() {
         return () => unsubscribe();
     }, []);
 
+    // Helper component to conditionally render Breadcrumb based on the current path
+    const ConditionalBreadcrumb = () => {
+        const location = useLocation();
+        return location.pathname !== "/" ? <Breadcrumb /> : null;
+    };
+
     return (
         <AuthProvider>
             <CartProvider>
                 <Router>
                     <Navbar user={user} />
+                    <ConditionalBreadcrumb /> {/* Display Breadcrumb conditionally */}
                     <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="/products" element={<ProductsPage />} />
@@ -55,7 +61,6 @@ function App() {
                         <Route path="/checkout" element={<CheckoutPage />} />
                         <Route path="/product/:id" element={<ProductDetails />} />
 
-                        {/* SignIn and SignUp Redirect based on user role */}
                         <Route 
                             path="/signin" 
                             element={
@@ -84,8 +89,6 @@ function App() {
                                 )
                             } 
                         />
-
-                        {/* New Pages */}
                         <Route 
                             path="/account-details" 
                             element={user ? <AccountDetails /> : <Navigate to="/signin" />} 
@@ -98,7 +101,6 @@ function App() {
                             path="/wishlist" 
                             element={user ? <Wishlist /> : <Navigate to="/signin" />} 
                         />
-                        {/* Added routes for AccountBilling and OrderTracking */}
                         <Route 
                             path="/account-billing" 
                             element={user ? <AccountBilling /> : <Navigate to="/signin" />} 
@@ -116,3 +118,4 @@ function App() {
 }
 
 export default App;
+

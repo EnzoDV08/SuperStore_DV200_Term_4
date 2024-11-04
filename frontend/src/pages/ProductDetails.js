@@ -40,6 +40,7 @@ const ProductDetails = () => {
       padding: "1rem",
       maxWidth: "600px",
       margin: "0 auto",
+      marginTop: "5rem",
     },
     image: {
       width: "100%",

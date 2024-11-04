@@ -4,16 +4,16 @@ import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { firestore } from "../firebaseConfig";
 import { collection, onSnapshot } from "firebase/firestore";
-import ProductCard from "../components/ProductCard";
+import LargeProductCard from "../components/LargeProductCard";
+import Filter from "../components/Filter";
+import Categories from "../components/Categories";
+
 
 const ProductsPage = () => {
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
     const location = useLocation();
     const filter = new URLSearchParams(location.search).get("filter");
-
-
-    // Extract search term from URL query parameters
     const query = new URLSearchParams(location.search).get("search") || "";
 
     useEffect(() => {
@@ -27,14 +27,11 @@ const ProductsPage = () => {
         return () => unsubscribe();
     }, []);
 
+
     useEffect(() => {
         const filterResults = () => {
             let results;
-            if (query.length === 1) {
-                results = products.filter(product =>
-                    product.name.toLowerCase().startsWith(query.toLowerCase())
-                );
-            } else if (query.length > 1) {
+            if (query.length > 0) {
                 results = products.filter(product =>
                     product.name.toLowerCase().includes(query.toLowerCase())
                 );
@@ -46,47 +43,50 @@ const ProductsPage = () => {
         filterResults();
     }, [query, products]);
 
+
     useEffect(() => {
-    const filterResults = () => {
-        let results = products;
-        
-        if (query) {
-            results = results.filter(product =>
-                product.name.toLowerCase().includes(query.toLowerCase())
-            );
-        }
+        const filterResults = () => {
+            let results = products;
+            
+            if (query) {
+                results = results.filter(product =>
+                    product.name.toLowerCase().includes(query.toLowerCase())
+                );
+            }
 
-        if (filter === "new") {
-            // Assuming you have a date field like `createdAt` in your product data
-            results = results.sort((a, b) => b.createdAt - a.createdAt);
-        } else if (filter === "best_sales") {
-            // Assuming you have a field like `soldCount` for best sales
-            results = results.sort((a, b) => b.soldCount - a.soldCount);
-        } else if (filter === "special_offers") {
-            // Assuming you have a field like `discountPercentage` to check for offers
-            results = results.filter(product => product.discountPercentage > 0);
-        }
+            if (filter === "new") {
+                results = results.sort((a, b) => b.createdAt - a.createdAt);
+            } else if (filter === "best_sales") {
+                results = results.sort((a, b) => b.soldCount - a.soldCount);
+            } else if (filter === "special_offers") {
+                results = results.filter(product => product.discountPercentage > 0);
+            }
 
-        setFilteredProducts(results);
-    };
-    filterResults();
-}, [query, filter, products]);
-
+            setFilteredProducts(results);
+        };
+        filterResults();
+    }, [query, filter, products]);
 
     const styles = {
-        container: {
-            padding: "20px",
-            textAlign: "center",
-        },
+         container: { display: "flex", justifyContent: "center", padding: "20px", marginTop: "60px" },
+         rightSidebar: { width: "25%", padding: "10px", marginLeft: "-120px" },
+        mainContent: { width: "60%", padding: "10px" },
         heading: {
             fontSize: "2rem",
             marginBottom: "1rem",
         },
         productGrid: {
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: "20px",
-            padding: "20px 0",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: "10px",
+            marginRight: "100px",
+            marginLeft: "100px",
+        },
+         dropdownContainer: {
+            display: "flex",
+            justifyContent: "flex-start",
+            gap: "10px",
+            marginBottom: "20px",
         },
         productCard: (index) => ({
             opacity: 0,
@@ -97,17 +97,27 @@ const ProductsPage = () => {
     };
 
     return (
-        <div style={styles.container}>
-            <h2 style={styles.heading}>Our Products</h2>
-            <div style={styles.productGrid}>
-                {filteredProducts.map((product, index) => (
-                    <div
-                        key={product.id}
-                        style={styles.productCard(index)}
-                    >
-                        <ProductCard product={product} />
-                    </div>
-                ))}
+      <div style={styles.container}>
+            <div style={styles.mainContent}>
+                <div style={styles.dropdownContainer}>
+                    <select>
+                        <option>16 Products</option>
+                        <option>32 Products</option>
+                    </select>
+                    <select>
+                        <option>Popular</option>
+                        <option>Newest</option>
+                    </select>
+                </div>
+                <div style={styles.productGrid}>
+                    {filteredProducts.map((product) => (
+                        <LargeProductCard key={product.id} product={product} />
+                    ))}
+                </div>
+            </div>
+            <div style={styles.rightSidebar}>
+                <Filter />
+                <Categories />
             </div>
             <style>
                 {`
