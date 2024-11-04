@@ -58,33 +58,38 @@ const SignIn = () => {
         container: {
             padding: "50px",
             maxWidth: "400px",
-            margin: "0 auto",
+            margin: "80px auto 0 auto", // Added top margin
             textAlign: "center",
             borderRadius: "10px",
             boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)",
             background: "white",
         },
         form: {
-            display: "flex",
-            flexDirection: "column",
+            display: "grid",
+            gridTemplateColumns: "1fr",
             gap: "15px",
         },
         inputContainer: {
-            position: "relative",
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
         },
         input: {
-            padding: "10px",
+            boxShadow: "inset -2px 2px 3px rgba(0, 0, 0, 0.2), inset 2px 0 3px rgba(0, 0, 0, 0.1)",
+            padding: "12px",
+            borderRadius: "8px",
+            border: "1px solid rgba(0, 0, 0, 0.2)",
             fontSize: "16px",
-            width: "100%",
-            borderRadius: "5px",
-            border: "1px solid #ddd",
+            backgroundColor: "rgba(255, 255, 255, 0.2)",
         },
         icon: {
-            position: "absolute",
-            right: "10px",
-            top: "50%",
-            transform: "translateY(-50%)",
+            display: "flex",
+            alignItems: "center",
+            padding: "8px 15px 8px 15px",
+            borderRadius: "8px",
+            background: 'transparent',
             cursor: "pointer",
+            margin: '0px 0px 0px -3rem', // Increased negative margin to overlap mor
+
         },
         button: {
             padding: "12px",
@@ -94,6 +99,7 @@ const SignIn = () => {
             border: "none",
             borderRadius: "5px",
             cursor: "pointer",
+            margin: "0px 20% 0px 20%"
         },
         googleButton: {
             display: "flex",
@@ -103,10 +109,12 @@ const SignIn = () => {
             color: "#555",
             padding: "10px",
             fontSize: "16px",
-            borderRadius: "5px",
+            borderRadius: "50px",
             cursor: "pointer",
-            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+            boxShadow: "-1px 2px 3px rgba(0, 0, 0, 0.2)",
             marginTop: "10px",
+            margin: "10px 20% 10px 20%",
+            border: "1px solid rgba(200, 200, 200, 0.2",
         },
         errorMessage: {
             color: "red",

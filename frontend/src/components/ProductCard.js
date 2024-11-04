@@ -1,6 +1,5 @@
 
     // src/components/ProductCard.js
-
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiHeart, FiShuffle, FiSearch, FiShoppingCart } from "react-icons/fi";
@@ -14,44 +13,52 @@ const ProductCard = ({ product = {} }) => {
     const { addToCart } = useContext(CartContext);
     const [hovered, setHovered] = useState(false);
     const [cartHovered, setCartHovered] = useState(false);
+    const [wishlistAdded, setWishlistAdded] = useState(false); // To track if item is added to wishlist
 
     const handleClick = () => {
         navigate(`/product/${product.id || ""}`);
     };
 
     const handleAddToCart = async (e) => {
-        e.stopPropagation();
-        const user = auth.currentUser;
-        if (!user) {
-            navigate('/signin');
-            return;
-        }
+    e.stopPropagation();
+    const user = auth.currentUser;
+    if (!user) {
+        navigate('/signin');
+        return;
+    }
 
-        const cartRef = doc(firestore, "users", user.uid, "carts", user.uid);
-        const cartSnapshot = await getDoc(cartRef);
+    const cartRef = doc(firestore, "carts", user.uid);
+    const cartSnapshot = await getDoc(cartRef);
 
-        const cartItem = {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            quantity: 1,
-            addedBy: user.uid,
-            sellerId: product.sellerId || "unknown"
-        };
-
-        try {
-            if (cartSnapshot.exists()) {
-                await updateDoc(cartRef, {
-                    items: arrayUnion(cartItem)
-                });
-            } else {
-                await setDoc(cartRef, { items: [cartItem] });
-            }
-            addToCart(cartItem);
-        } catch (error) {
-            console.error("Error adding to cart:", error);
-        }
+    // Ensure the cart item includes imageUrl and discount fields
+    const cartItem = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        discountedPrice: product.discount > 0 ? product.price * (1 - product.discount / 100) : product.price,
+        imageUrl: product.imageUrl || "https://via.placeholder.com/80", // Fallback image if none provided
+        discount: product.discount || 0,
+        quantity: 1,
+        addedBy: user.uid,
+        sellerId: product.sellerId || "unknown"
     };
+
+
+    
+    try {
+        if (cartSnapshot.exists()) {
+            await updateDoc(cartRef, {
+                items: arrayUnion(cartItem)
+            });
+        } else {
+            await setDoc(cartRef, { items: [cartItem] });
+        }
+        addToCart(cartItem); // Update cart context
+    } catch (error) {
+        console.error("Error adding to cart:", error);
+    }
+};
+
 
     const handleAddToWishlist = async (e) => {
         e.stopPropagation();
@@ -66,26 +73,25 @@ const ProductCard = ({ product = {} }) => {
             id: product.id,
             name: product.name,
             imageUrl: product.imageUrl,
-            price: product.price,
+            price: product.discountedPrice || product.price,
             category: product.category || "Uncategorized",
             addedAt: new Date(),
         };
 
         try {
             await setDoc(wishlistRef, wishlistItem);
-            alert("Product added to wishlist!");
+            setWishlistAdded(true); // Indicate that the item is added to wishlist
         } catch (error) {
             console.error("Error adding to wishlist:", error);
         }
     };
 
-    // Fallback values for properties
     const imageUrl = product?.imageUrl || "https://via.placeholder.com/280x250";
     const name = product?.name || product?.title || "Product Name";
     const rating = product?.rating || 0;
     const price = product?.price ? product.price.toFixed(2) : "N/A";
-    const discountPercentage = product?.discountPercentage || 0;
-    const discountedPrice = discountPercentage > 0 ? (price - (price * discountPercentage) / 100).toFixed(2) : price;
+    const discount = product?.discount || 0;
+    const discountedPrice = discount > 0 ? (price - (price * discount) / 100).toFixed(2) : price;
 
     const renderStars = (rating = 0) => {
         const stars = [];
@@ -236,7 +242,7 @@ const ProductCard = ({ product = {} }) => {
         },
     };
 
-    return (
+     return (
         <div
             style={styles.card}
             onClick={handleClick}
@@ -245,9 +251,9 @@ const ProductCard = ({ product = {} }) => {
         >
             <div style={styles.imageContainer}>
                 <img src={imageUrl} alt={name} style={styles.image} />
-                {discountPercentage > 0 && (
+                {discount > 0 && (
                     <div style={styles.discountLabel}>
-                        <span style={styles.discountText}>{discountPercentage}%</span>
+                        <span style={styles.discountText}>{discount}%</span>
                         <span style={styles.percentSymbol}>OFF</span>
                     </div>
                 )}
@@ -255,7 +261,7 @@ const ProductCard = ({ product = {} }) => {
                     <div
                         style={{
                             ...styles.iconButton,
-                            ...(hovered ? styles.iconButtonHover : {}),
+                            backgroundColor: wishlistAdded ? "#ff4c4c" : "rgba(255, 255, 255, 0.9)", // Change color if added to wishlist
                         }}
                         title="Add to Wishlist"
                         onClick={handleAddToWishlist}
@@ -274,7 +280,7 @@ const ProductCard = ({ product = {} }) => {
                 <div className="product-name" style={styles.name}>{name}</div>
                 <div style={styles.ratingStars}>{renderStars(rating)}</div>
                 <div style={styles.priceContainer}>
-                    {discountPercentage > 0 ? (
+                    {discount > 0 ? (
                         <>
                             <span style={styles.price}>R{discountedPrice}</span>
                             <span style={styles.oldPrice}>R{price}</span>

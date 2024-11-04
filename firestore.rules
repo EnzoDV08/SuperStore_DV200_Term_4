@@ -2,58 +2,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Function to check if a user is an authenticated seller
-    function isAuthenticatedSeller(uid) {
-      let userDoc = get(/databases/$(database)/documents/users/$(uid));
-      return userDoc.exists() && userDoc.data.sellerDetails.isSeller == true;
-    }
-
     // Users collection and sub-collections
     match /users/{userId} {
-      // Allow users to read and write their own documents
+      // Allow users to read and write their own user document
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      // User-specific products sub-collection (only accessible if the user is a seller)
+      // Products sub-collection under a user
       match /products/{productId} {
-        // Allow authenticated users to view individual products
-        allow read: if request.auth != null;
-
-        // Allow only authenticated sellers to create new products
-        allow create: if request.auth != null && isAuthenticatedSeller(userId);
-
-        // Allow only the product owner to update or delete their products
-        allow update, delete: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null; // Authenticated users can read
+        allow create, update, delete: if request.auth != null && request.auth.uid == userId; // Only owner can modify
       }
 
-      // User-specific carts sub-collection
+      // Carts sub-collection under a user
       match /carts/{cartId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
-      // User-specific orders sub-collection
+      // Orders sub-collection under a user
       match /orders/{orderId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Global products collection - accessible to all users for viewing
+match /orders/{orderId} {
+    // Allow buyers to create, read, and delete their own orders
+    allow create: if request.auth != null && request.auth.uid == request.resource.data.buyerId;
+    allow read: if request.auth != null && (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.sellerId);
+    allow update: if request.auth != null && request.auth.uid == resource.data.sellerId;
+    allow delete: if request.auth != null && request.auth.uid == resource.data.buyerId;
+}
+
+    // Global products collection
     match /products/{productId} {
-      // Public access for viewing products
-      allow read: if true;
-
-      // Allow only authenticated sellers to create new products in the global collection
-      allow create: if request.auth != null && isAuthenticatedSeller(request.auth.uid);
-
-      // Allow only the product's seller to update or delete their products
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.sellerId;
-    }
-
-    // Public products collection for general viewing and seller-managed products
-    match /publicProducts/{productId} {
-      allow read: if true;
-
-      // Allow only the product's seller to create, update, or delete in the public collection
-      allow create, update, delete: if request.auth != null && request.auth.uid == resource.data.sellerId;
+      allow read: if true;  // Public read access
+      allow create: if request.auth != null; // Any authenticated user can create
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.sellerId; // Only the owner can update/delete
     }
 
     // Global carts collection (each user has access to their own cart)
@@ -61,21 +44,18 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+  // Global orders collection
+match /orders/{orderId} {
+  // Allow buyers to create, read, and delete their own orders
+  allow create, read, delete: if request.auth != null && request.auth.uid == resource.data.buyerId;
+
+  // Allow sellers to read and update orders related to them
+  allow read, update: if request.auth != null && request.auth.uid == resource.data.sellerId;
+}
+
     // Categories collection - accessible to all authenticated users
     match /categories/{categoryId} {
       allow read: if request.auth != null;
-    }
-
-    // Global orders collection for managing orders
-    match /orders/{orderId} {
-      // Allow authenticated users to create orders
-      allow create: if request.auth != null;
-
-      // Allow the buyer to read and delete their own orders
-      allow read, delete: if request.auth != null && request.auth.uid == resource.data.buyerId;
-
-      // Allow the seller to update the order if they own the product in the order
-      allow update: if request.auth != null && request.auth.uid == resource.data.sellerId;
     }
   }
 }

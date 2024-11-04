@@ -37,23 +37,23 @@ const Navbar = () => {
   }, []);
 
 useEffect(() => {
-        const fetchCartItemCount = async () => {
-            if (user) {
-                const cartRef = doc(firestore, "carts", user.uid);
-                const cartSnapshot = await getDoc(cartRef);
-                if (cartSnapshot.exists()) {
-                    const items = cartSnapshot.data().items || [];
-                    const itemCount = items.reduce((total, item) => total + item.quantity, 0);
-                    setCartItemCount(itemCount);
-                }
-            } else {
-                const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
+    const fetchCartItemCount = async () => {
+        if (user) {
+            const cartRef = doc(firestore, "carts", user.uid);
+            const cartSnapshot = await getDoc(cartRef);
+            if (cartSnapshot.exists()) {
+                const items = cartSnapshot.data().items || [];
+                const itemCount = items.reduce((total, item) => total + item.quantity, 0);
                 setCartItemCount(itemCount);
             }
-        };
+        } else {
+            const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
+            setCartItemCount(itemCount);
+        }
+    };
 
-        fetchCartItemCount();
-    }, [user, cart]);
+    fetchCartItemCount();
+}, [user, cart]);
 
  useEffect(() => {
     const fetchUserRole = async () => {
@@ -67,11 +67,7 @@ useEffect(() => {
     fetchUserRole();
   }, [user]);
 
- useEffect(() => {
-    // Update cart item count based on context
-    const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
-    setCartItemCount(itemCount);
-  }, [cart]);
+ 
 
 
 

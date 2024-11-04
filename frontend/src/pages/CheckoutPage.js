@@ -1,132 +1,202 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { CartContext } from '../contexts/CartContext';
 import { firestore, auth } from '../firebaseConfig';
-import { collection, doc, updateDoc, addDoc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { FaMapMarkerAlt, FaUser, FaCreditCard, FaExclamationCircle } from 'react-icons/fa';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const CheckoutPage = () => {
     const { cart: contextCart, removeFromCart, updateQuantity, clearCart } = useContext(CartContext);
     const [cart, setCart] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [discountCode, setDiscountCode] = useState("");
+    const [discountApplied, setDiscountApplied] = useState(false);
+    const [location, setLocation] = useState("");
+    const [bankDetails, setBankDetails] = useState({ accountNumber: "", accountHolder: "" });
 
     useEffect(() => {
-        const loadUserCart = async () => {
-            const user = auth.currentUser;
+        let unsubscribe;
+
+        const loadUserCart = (user) => {
             if (user) {
                 const cartRef = doc(firestore, "carts", user.uid);
-                const cartSnapshot = await getDoc(cartRef);
-
-                if (cartSnapshot.exists()) {
-                    setCart(cartSnapshot.data().items || []);
-                } else {
-                    setCart(contextCart);
-                }
+                unsubscribe = onSnapshot(cartRef, (cartSnapshot) => {
+                    if (cartSnapshot.exists()) {
+                        setCart(cartSnapshot.data().items || []);
+                    } else {
+                        setCart([]);
+                    }
+                    setLoading(false);
+                });
             } else {
-                setCart(contextCart);
-            }
-            setLoading(false);
-        };
-
-        loadUserCart();
-    }, [contextCart]);
-
-    useEffect(() => {
-        const saveCartToFirestore = async (updatedCart) => {
-            const user = auth.currentUser;
-            if (user) {
-                const cartRef = doc(firestore, "carts", user.uid);
-                await setDoc(cartRef, { items: updatedCart }, { merge: true });
+                setCart([]);
+                setLoading(false);
             }
         };
 
-        saveCartToFirestore(cart);
-    }, [cart]);
+        const authUnsubscribe = onAuthStateChanged(auth, (user) => {
+            setLoading(true);
+            loadUserCart(user);
+        });
 
-    const calculateTotal = () => {
+        return () => {
+            if (unsubscribe) unsubscribe();
+            if (authUnsubscribe) authUnsubscribe();
+        };
+    }, []);
+
+    const calculateSubtotal = () => {
         return cart.reduce((total, item) => {
-            const price = item.price ?? 0;
+            const price = item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price;
             const quantity = item.quantity ?? 1;
             return total + price * quantity;
         }, 0).toFixed(2);
     };
 
     const calculateDiscount = () => {
-        return cart.reduce((total, item) => {
-            const price = item.price ?? 0;
-            const discountPercentage = item.discountPercentage ?? 0;
-            const discountAmount = (price * discountPercentage) / 100;
-            const quantity = item.quantity ?? 1;
-            return total + discountAmount * quantity;
-        }, 0).toFixed(2);
+        const itemDiscount = cart.reduce((total, item) => {
+            const originalPrice = item.price ?? 0;
+            const discountAmount = item.discount ? (originalPrice * item.discount / 100) * (item.quantity ?? 1) : 0;
+            return total + discountAmount;
+        }, 0);
+
+        const codeDiscount = discountApplied ? calculateSubtotal() * 0.1 : 0;
+        return (itemDiscount + codeDiscount).toFixed(2);
     };
 
-    const total = calculateTotal();
-    const totalDiscount = calculateDiscount();
-    const finalTotal = (total - totalDiscount).toFixed(2);
+    const subtotal = calculateSubtotal();
+    const discountTotal = calculateDiscount();
+    const estimatedTax = (subtotal * 0.15).toFixed(2); // 15% tax rate
+    const total = (subtotal - discountTotal + parseFloat(estimatedTax)).toFixed(2);
+
+    const applyDiscount = () => {
+        if (discountCode === "SAVE10") {
+            setDiscountApplied(true);
+            toast.success("Discount applied!");
+        } else {
+            toast.error("Invalid discount code");
+        }
+    };
 
     const placeOrder = async () => {
         const user = auth.currentUser;
-        if (!user || cart.length === 0) return;
-
-        const orderData = {
-            buyerId: user.uid,
-            items: cart.map((item) => ({
-                id: item.id,
-                name: item.name,
-                quantity: item.quantity,
-                price: item.price,
-                sellerId: item.sellerId,
-            })),
-            totalAmount: finalTotal,
-            isApprovedBySeller: false,
-            createdAt: new Date(),
-        };
-        await addDoc(collection(firestore, "orders"), orderData);
-
-        for (const item of cart) {
-            const productRef = doc(firestore, 'products', item.id);
-            await updateDoc(productRef, { stock: item.stock - item.quantity });
+        if (!user || cart.length === 0) {
+            toast.warn("Please add items to the cart before placing an order.");
+            return;
         }
 
-        alert("Order placed! Awaiting seller approval.");
-        clearCart();
+        try {
+            const orderData = {
+                buyerId: user.uid,
+                items: cart.map((item) => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                    sellerId: item.sellerId,
+                    imageUrl: item.imageUrl,
+                    discountedPrice: item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price,
+                })),
+                totalAmount: total,
+                location: location,
+                bankDetails: bankDetails,
+                status: "Pending",
+                createdAt: new Date(),
+            };
+            await setDoc(doc(firestore, "orders", `${user.uid}_${Date.now()}`), orderData);
+
+            // Update each product's stock and soldCount
+            for (const item of cart) {
+                const productRef = doc(firestore, "products", item.id);
+                const productSnapshot = await getDoc(productRef);
+                
+                if (productSnapshot.exists()) {
+                    const productData = productSnapshot.data();
+                    const newStock = (productData.stock || 0) - item.quantity;
+                    const newSoldCount = (productData.soldCount || 0) + item.quantity;
+
+                    // Ensure stock doesn't go negative
+                    if (newStock >= 0) {
+                        await updateDoc(productRef, {
+                            stock: newStock,
+                            soldCount: newSoldCount
+                        });
+                    } else {
+                        toast.error(`Insufficient stock for ${item.name}. Please adjust your quantity.`);
+                        return;
+                    }
+                } else {
+                    console.error(`Product ${item.id} not found`);
+                }
+            }
+
+            clearCart();
+            toast.success("Order placed! Awaiting seller approval.");
+        } catch (error) {
+            console.error("Error placing order:", error);
+            toast.error("Failed to place order. Please try again.");
+        }
     };
 
     const styles = {
         checkoutPage: {
-            maxWidth: '800px',
+            display: 'flex',
+            maxWidth: '1200px',
             margin: '0 auto',
+            marginTop: '50px',
             padding: '20px',
             fontFamily: 'Arial, sans-serif',
         },
-        header: {
-            textAlign: 'center',
-            marginBottom: '20px',
-        },
-        cartItems: {
-            border: '1px solid #ddd',
-            padding: '10px',
-            borderRadius: '5px',
-            marginBottom: '20px',
+        cartItemsContainer: {
+            flex: 3,
+            marginRight: '20px',
+            backgroundColor: '#fff',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
         },
         cartItem: {
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '10px 0',
+            padding: '15px 0',
             borderBottom: '1px solid #ddd',
+            position: 'relative',
+        },
+        discountLabel: {
+            position: 'absolute',
+            top: '10px',
+            left: '10px',
+            backgroundColor: '#ff4c4c',
+            color: '#fff',
+            padding: '4px 8px',
+            fontWeight: 'bold',
+            fontSize: '12px',
+            borderRadius: '4px',
+        },
+        productImage: {
+            width: '80px',
+            height: '80px',
+            marginRight: '15px',
+            borderRadius: '8px',
+            objectFit: 'cover',
         },
         itemName: {
+            flex: 2,
             fontWeight: 'bold',
-            textAlign: 'center',
-            flex: '1',
+            color: '#007bff',
         },
         itemPrice: {
-            flex: '1',
+            flex: 1,
             textAlign: 'center',
+            fontWeight: '600',
         },
         quantityControl: {
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
+            flex: 1,
         },
         quantityButton: {
             backgroundColor: '#007bff',
@@ -138,105 +208,221 @@ const CheckoutPage = () => {
             margin: '0 5px',
         },
         removeButton: {
-            backgroundColor: '#ff4c4c',
-            color: 'white',
-            border: 'none',
-            padding: '5px 10px',
+            color: 'red',
             cursor: 'pointer',
-            borderRadius: '3px',
+            marginLeft: '10px',
+            fontSize: '20px',
+            fontWeight: 'bold',
         },
-        summary: {
+        summaryContainer: {
+            flex: 1,
+            height: '100vh',
+            position: 'sticky',
+            top: '0',
+            padding: '20px',
             border: '1px solid #ddd',
-            padding: '10px',
-            borderRadius: '5px',
+            borderRadius: '8px',
+            backgroundColor: '#f9f9f9',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
         },
         summaryHeader: {
-            textAlign: 'center',
-            marginBottom: '10px',
             fontWeight: 'bold',
-            fontSize: '18px',
+            marginBottom: '10px',
+            fontSize: '1.5rem',
+            color: '#333',
         },
-        summaryText: {
-            textAlign: 'center',
-            margin: '5px 0',
+        summaryItem: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginBottom: '8px',
+            fontSize: '1.1rem',
+            color: '#555',
         },
-        billingInfo: {
-            marginTop: '20px',
+        discountCodeContainer: {
+            display: 'flex',
+            marginTop: '15px',
         },
-        inputField: {
-            width: '100%',
-            padding: '10px',
-            margin: '5px 0',
-            borderRadius: '5px',
+        discountInput: {
+            flex: 1,
+            padding: '8px',
+            borderRadius: '4px 0 0 4px',
             border: '1px solid #ddd',
-            fontSize: '16px',
+            fontSize: '1rem',
+        },
+        applyButton: {
+            padding: '8px 15px',
+            backgroundColor: '#ff9f00',
+            border: 'none',
+            borderRadius: '0 4px 4px 0',
+            color: 'white',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            fontWeight: '600',
         },
         checkoutButton: {
-            backgroundColor: '#28a745',
-            color: 'white',
-            padding: '10px 20px',
+            width: '100%',
+            padding: '10px 0',
+            backgroundColor: '#ff9f00',
             border: 'none',
             borderRadius: '5px',
-            fontSize: '16px',
+            color: 'white',
+            fontSize: '1.2rem',
             cursor: 'pointer',
+            marginTop: '15px',
+            fontWeight: '600',
+        },
+        sectionContainer: {
             marginTop: '20px',
-            width: '100%',
+            padding: '15px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            backgroundColor: '#fff',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        },
+        sectionHeader: {
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: '1.2rem',
+            fontWeight: 'bold',
+            color: '#333',
+            marginBottom: '10px',
+        },
+        sectionIcon: {
+            marginRight: '10px',
+            color: '#007bff',
+        },
+        disclaimer: {
+            fontSize: '0.8rem',
+            color: '#777',
+            marginTop: '15px',
+            display: 'flex',
+            alignItems: 'center',
+        },
+        disclaimerIcon: {
+            marginRight: '5px',
+            color: '#ff4c4c',
         },
     };
 
     return (
         loading ? <p>Loading...</p> : (
             <div style={styles.checkoutPage}>
-                <h1 style={styles.header}>Checkout</h1>
-                <div style={styles.cartItems}>
-                    {cart.map((item) => (
-                        <div key={item.id} style={styles.cartItem}>
-                            <span style={styles.itemName}>{item.name}</span>
-                            <span style={styles.itemPrice}>R{(item.price ?? 0).toFixed(2)}</span>
-                            <span style={styles.quantityControl}>
+                 <ToastContainer />
+                <div style={styles.cartItemsContainer}>
+                    {cart.length > 0 ? (
+                        cart.map((item, index) => (
+                             <div key={`${item.id}-${index}`} style={styles.cartItem}>
+                                {item.discount > 0 && (
+                                    <div style={styles.discountLabel}>{item.discount}% OFF</div>
+                                )}
+                                <img src={item.imageUrl || 'https://via.placeholder.com/80'} alt={item.name} style={styles.productImage} />
+                                <span style={styles.itemName}>{item.name}</span>
+                                <span style={styles.itemPrice}>R{((item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price)).toFixed(2)}</span>
+                                <div style={styles.quantityControl}>
+                                    <button
+                                        style={styles.quantityButton}
+                                        onClick={() => updateQuantity(item.id, -1)}
+                                    >
+                                        -
+                                    </button>
+                                    {item.quantity}
+                                    <button
+                                        style={styles.quantityButton}
+                                        onClick={() => updateQuantity(item.id, 1)}
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                                <span style={styles.itemPrice}>R{((item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price) * item.quantity).toFixed(2)}</span>
                                 <button
-                                    style={styles.quantityButton}
-                                    onClick={() => updateQuantity(item.id, -1)}
+                                    style={styles.removeButton}
+                                    onClick={() => removeFromCart(item.id)}
                                 >
-                                    -
+                                    ✕
                                 </button>
-                                {item.quantity}
-                                <button
-                                    style={styles.quantityButton}
-                                    onClick={() => updateQuantity(item.id, 1)}
-                                >
-                                    +
-                                </button>
-                            </span>
-                            <button
-                                style={styles.removeButton}
-                                onClick={() => removeFromCart(item.id)}
-                            >
-                                Remove
-                            </button>
+                            </div>
+                        ))
+                    ) : (
+                        <p>No items in cart.</p>
+                    )}
+                    <div style={styles.discountCodeContainer}>
+                        <input 
+                            type="text" 
+                            placeholder="Discount code" 
+                            style={styles.discountInput} 
+                            value={discountCode}
+                            onChange={(e) => setDiscountCode(e.target.value)}
+                        />
+                        <button style={styles.applyButton} onClick={applyDiscount}>Apply</button>
+                    </div>
+                </div>
+                <div style={styles.summaryContainer}>
+                    <h2 style={styles.summaryHeader}>Cart Total</h2>
+                    <div style={styles.summaryItem}>
+                        <span>Subtotal</span>
+                        <span>R{subtotal}</span>
+                    </div>
+                    <div style={styles.summaryItem}>
+                        <span>Discount</span>
+                        <span>R{discountTotal}</span>
+                    </div>
+                    <div style={styles.summaryItem}>
+                        <span>Estimated Tax</span>
+                        <span>R{estimatedTax}</span>
+                    </div>
+                    <div style={styles.summaryItem}>
+                        <span>Total</span>
+                        <span style={styles.totalPriceContainer}>R{total}</span>
+                    </div>
+                    <div style={styles.sectionContainer}>
+                        <div style={styles.sectionHeader}>
+                            <FaMapMarkerAlt style={styles.sectionIcon} />
+                            Delivery Location
                         </div>
-                    ))}
+                        <input
+                            type="text"
+                            placeholder="Enter your location"
+                            value={location}
+                            onChange={(e) => setLocation(e.target.value)}
+                            style={styles.locationInput}
+                        />
+                    </div>
+                    <div style={styles.sectionContainer}>
+                        <div style={styles.sectionHeader}>
+                            <FaCreditCard style={styles.sectionIcon} />
+                            Billing Information
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Account Holder Name"
+                            value={bankDetails.accountHolder}
+                            onChange={(e) => setBankDetails({ ...bankDetails, accountHolder: e.target.value })}
+                            style={styles.bankInput}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Account Number"
+                            value={bankDetails.accountNumber}
+                            onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                            style={styles.bankInput}
+                        />
+                    </div>
+                    <div style={styles.disclaimer}>
+                        <FaExclamationCircle style={styles.disclaimerIcon} />
+                        This payment process is a demonstration and does not involve real transactions.
+                    </div>
+                    <button style={styles.checkoutButton} onClick={placeOrder}>
+                        Checkout
+                    </button>
                 </div>
-
-                <div style={styles.billingInfo}>
-                    <h2 style={styles.summaryHeader}>Billing Information</h2>
-                    <input type="text" placeholder="Name on Card" style={styles.inputField} />
-                    <input type="text" placeholder="Card Number" style={styles.inputField} />
-                    <input type="text" placeholder="Expiry Date (MM/YY)" style={styles.inputField} />
-                    <input type="text" placeholder="CVV" style={styles.inputField} />
-                    <h2 style={styles.summaryHeader}>Shipping Address</h2>
-                    <input type="text" placeholder="Address Line 1" style={styles.inputField} />
-                    <input type="text" placeholder="City" style={styles.inputField} />
-                    <input type="text" placeholder="Postal Code" style={styles.inputField} />
-                    <input type="text" placeholder="Country" style={styles.inputField} />
-                </div>
-
-                <button style={styles.checkoutButton} onClick={placeOrder}>
-                    Place Order (Fake Payment)
-                </button>
             </div>
         )
     );
 };
 
 export default CheckoutPage;
+
+
