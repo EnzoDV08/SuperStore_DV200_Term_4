@@ -99,7 +99,7 @@ SuperStore’s Firebase Firestore database is structured to manage user informat
 
 ### Collections Overview
 
-- **Users**: Manages user profiles, including whether they are sellers or buyers and stores relevant account details.
+- **Users**: Manages user profiles, including whether they are sellers or buyers, and stores relevant account details.
 - **Products**: Holds details for each product, such as title, description, price, stock level, and the associated seller.
 - **Orders**: Tracks order-related information, including the customer’s details, status of the order, and items in the order.
 - **Carts**: Stores items that users add to their shopping carts on a per-user basis.
@@ -136,6 +136,17 @@ SuperStore’s Firebase Firestore database is structured to manage user informat
 | `status`        | String         | Status of the order (e.g., Pending, Shipped)      |
 | `totalPrice`    | Number         | Total amount for the order                        |
 | `orderDate`     | Timestamp      | Date when the order was placed                    |
+
+#### 4. `carts` Collection
+
+| **Field**          | **Type**       | **Description**                                 |
+|--------------------|----------------|-------------------------------------------------|
+| `items`            | Array          | Array of items in the user's cart               |
+| `items[0].id`      | String         | Product ID for the item in the cart             |
+| `items[0].name`    | String         | Name of the product in the cart                 |
+| `items[0].price`   | Number         | Price of the product                            |
+| `items[0].quantity`| Number         | Quantity of the product in the cart             |
+| `items[0].imageUrl`| String (URL)   | URL to the product image                        |
 
 Each collection is carefully organized to enable efficient retrieval and management of data within the platform, ensuring a seamless experience for both sellers and buyers.
 
