@@ -34,20 +34,25 @@ Check out our mockups to visualize SuperStore's interface:
 - **Version Control:** GitHub
 - **Development Environment:** Visual Studio Code
 
+Frontend: React
+Backend/Database: Firebase Firestore
+Hosting: Firebase
+Version Control: GitHub
+Development Environment: Visual Studio Code
+
 ## 🏗️ Project Setup
 
 To run the SuperStore project on your local machine, follow these steps:
 
 ### 1. Clone the Repository
 
-bash
+
 git clone https://github.com/EnzoDV08/SuperStore_DV200_Term_4.git
 cd SuperStore_DV200_Term_4
 2. Install Dependencies
 Navigate to the frontend folder and install dependencies:
 
-bash
-Copy code
+
 cd frontend
 npm install
 3. Set Up Firebase
@@ -55,8 +60,7 @@ Go to the Firebase Console.
 Create a new project named "SuperStore" (or any preferred name).
 Add a web app to your project and set up Firebase Hosting if you wish to deploy.
 Copy the Firebase configuration and paste it into a .env file in the frontend directory.
-plaintext
-Copy code
+
 REACT_APP_FIREBASE_API_KEY=your-api-key
 REACT_APP_FIREBASE_AUTH_DOMAIN=your-auth-domain
 REACT_APP_FIREBASE_PROJECT_ID=your-project-id
@@ -66,16 +70,14 @@ REACT_APP_FIREBASE_APP_ID=your-app-id
 4. Run the Project
 In the frontend folder, run the application:
 
-bash
-Copy code
+
 npm start
 The application should now be running on http://localhost:3000.
 
 5. Deployment
 To deploy the app to Firebase Hosting, use these commands:
 
-bash
-Copy code
+
 firebase login
 firebase init
 firebase deploy
@@ -126,8 +128,7 @@ Brand Logos: Sellers can add a logo for their brand, which will be displayed on 
 Images are securely stored and referenced in Firestore documents to maintain a clean structure and quick retrieval.
 
 📂 Project Structure
-plaintext
-Copy code
+
 SUPERSTORE_DV200_TERM_4/
 ├── backend/
 ├── frontend/
@@ -175,6 +176,7 @@ SUPERSTORE_DV200_TERM_4/
 ├── firebase.json
 ├── firestore.rules
 └── README.md
+
 📖 Documentation
 Important Components
 Dashboard: Main page for sellers to manage their stock and products.
@@ -189,19 +191,12 @@ firebaseConfig.js: Configures Firebase services including Firestore and Storage.
 Check out the live demo of SuperStore here.
 
 🖊️ Author
-Your Name - Your GitHub
+Enzo De Vittorio - https://github.com/EnzoDV08/SuperStore_DV200_Term_4.git
 💬 Feedback
 Feel free to contribute, raise issues, or provide suggestions to help improve SuperStore!
 
 Happy Shopping with SuperStore! 🎉
 
-vbnet
-Copy code
 
-**Notes:**
 
-- Replace placeholder links (e.g., "Mockup Link" and "link-to-your-image") with actual URLs.
-- Update your Firebase credentials in the `.env` file as needed.
-- For `firebaseConfig.js`, ensure Firebase authentication and storage configurations are correctly set up to support Google sign-in and email authentication.
 
-This `README.md` provides a comprehensive overview of the Fi
