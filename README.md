@@ -191,15 +191,6 @@ SUPERSTORE_DV200_TERM_4/
 ├── firestore.rules          # Firestore security rules
 └── README.md                # Project documentation
 
-Key:
-Folders:
-backend/: Contains backend files if applicable.
-frontend/: Main folder for the frontend application.
-src/: Source code, organized into folders for assets, components, contexts, and pages.
-Important Files:
-firebaseConfig.js: Firebase configurations.
-App.js: Root app component.
-.gitignore: Lists files and folders for Git to ignore.
 
 
 📖 Documentation
