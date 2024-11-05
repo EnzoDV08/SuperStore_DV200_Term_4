@@ -41,7 +41,7 @@ To run the SuperStore project on your local machine, follow these steps:
 ### 1. Clone the Repository
 
 bash
-git clone https://github.com/your-username/SuperStore_DV200_Term_4.git
+git clone https://github.com/EnzoDV08/SuperStore_DV200_Term_4.git
 cd SuperStore_DV200_Term_4
 2. Install Dependencies
 Navigate to the frontend folder and install dependencies:
