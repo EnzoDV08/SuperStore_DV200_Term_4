@@ -1,5 +1,3 @@
-// src/pages/ProductsPage.js
-
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { firestore } from "../firebaseConfig";
@@ -11,45 +9,57 @@ import Categories from "../components/Categories";
 const ProductsPage = () => {
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
-    const [priceRange, setPriceRange] = useState([10, 10000]); // Initial range
+    const [priceRange, setPriceRange] = useState([10, 10000]);
+    const location = useLocation();
 
     useEffect(() => {
-        const unsubscribe = onSnapshot(collection(firestore, "products"), (snapshot) => {
-            const productList = snapshot.docs.map(doc => ({
+        const q = collection(firestore, "products");
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const productList = snapshot.docs.map((doc) => ({
                 id: doc.id,
-                ...doc.data()
+                ...doc.data(),
             }));
             setProducts(productList);
+            setFilteredProducts(productList); // Display all products by default
         });
         return () => unsubscribe();
     }, []);
 
     useEffect(() => {
-        const filterResults = () => {
-            let results = products.filter(
-                (product) =>
-                    product.price >= priceRange[0] &&
-                    product.price <= priceRange[1]
-            );
-            setFilteredProducts(results);
-        };
-        filterResults();
-    }, [priceRange, products]);
+        applyFilter();
+    }, [priceRange, products, location]);
 
-  const styles = {
+    const applyFilter = () => {
+        let results = [...products];
+
+        // Handle specific navigation filters (new, best sales, special offers)
+        const searchParams = new URLSearchParams(location.search);
+        if (searchParams.get("filter") === "new") {
+            results = results.sort((a, b) => b.createdAt - a.createdAt);
+        } else if (searchParams.get("filter") === "best_sales") {
+            results = results.sort((a, b) => b.soldCount - a.soldCount);
+        } else if (searchParams.get("filter") === "special_offers") {
+            results = results.filter((product) => product.discount > 0);
+        }
+
+        // Price range filter if not at default range
+        if (priceRange[0] !== 10 || priceRange[1] !== 10000) {
+            results = results.filter(
+                (product) => product.price >= priceRange[0] && product.price <= priceRange[1]
+            );
+        }
+
+        setFilteredProducts(results);
+    };
+
+    const styles = {
         container: { display: "flex", justifyContent: "center", padding: "20px", marginTop: "60px" },
-        rightSidebar: { width: "25%", padding: "10px", marginLeft: "-120px" },
+        rightSidebar: { width: "25%", padding: "10px", marginLeft: "20px" },
         mainContent: { width: "60%", padding: "10px" },
-        heading: {
-            fontSize: "2rem",
-            marginBottom: "1rem",
-        },
         productGrid: {
             display: "grid",
             gridTemplateColumns: "repeat(2, 1fr)",
             gap: "10px",
-            marginRight: "100px",
-            marginLeft: "100px",
         },
         dropdownContainer: {
             display: "flex",
@@ -66,7 +76,7 @@ const ProductsPage = () => {
     };
 
     return (
-       <div style={styles.container}>
+        <div style={styles.container}>
             <div style={styles.mainContent}>
                 <div style={styles.dropdownContainer}>
                     <select>
@@ -91,7 +101,7 @@ const ProductsPage = () => {
                 <Categories />
             </div>
             <style>
-                 {`
+                {`
                 @keyframes slideIn {
                     0% {
                         opacity: 0;

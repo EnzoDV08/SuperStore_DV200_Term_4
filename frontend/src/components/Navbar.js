@@ -149,17 +149,16 @@ const handleIconClick = (icon) => {
     }
   };
 
-  const handleNewProductsClick = () => {
-    navigate('/products?filter=new');
-  };
+ const handleNewProductsClick = () => {
+    navigate("/products?filter=new");
+};
 
   const handleBestSalesClick = () => {
-    navigate('/products?filter=best_sales');
-  };
-
-  const handleSpecialOffersClick = () => {
-    navigate('/products?filter=special_offers');
-  };
+    navigate("/products?filter=best_sales");
+};
+ const handleSpecialOffersClick = () => {
+    navigate("/products?filter=special_offers");
+};
 
   const styles = {
     navbar: {

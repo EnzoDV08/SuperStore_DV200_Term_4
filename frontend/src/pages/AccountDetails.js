@@ -6,6 +6,7 @@ import Sidebar from "../components/Sidebar";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "../pages/animate.css"; 
 
 const AccountDetails = () => {
     const [firstName, setFirstName] = useState("");
@@ -248,7 +249,7 @@ const AccountDetails = () => {
 };
 
 const styles = {
-    container: {
+  container: {
         display: "flex",
         padding: "50px",
         maxWidth: "1400px",
@@ -275,13 +276,6 @@ const styles = {
     formRow: {
         display: "flex",
         gap: "20px",
-    },
-    input: {
-        width: "100%",
-        padding: "10px",
-        marginBottom: "10px",
-        borderRadius: "5px",
-        border: "1px solid #ddd",
     },
     buttonsContainer: {
         display: "flex",
@@ -356,44 +350,84 @@ const styles = {
     buttonSubtitle: {
         fontSize: "1rem",
     },
-    modal: {
+   modal: {
         position: "fixed",
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        padding: "20px",
+        padding: "30px",
         backgroundColor: "white",
-        borderRadius: "8px",
-        boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)",
+        borderRadius: "12px",
+        boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.2)",
         zIndex: 1000,
-        width: "400px",
+        width: "500px",
+        animation: "fadeIn 0.5s ease",
+    },
+    modalTitle: {
+        fontSize: "1.8rem",
+        color: "#333",
+        textAlign: "center",
+        marginBottom: "20px",
+    },
+    formGroup: {
+        display: "flex",
+        alignItems: "center",
+        borderRadius: "8px",
+        padding: "12px",
+        backgroundColor: "#f1f1f1",
+        marginBottom: "15px",
+        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+    },
+    icon: {
+        fontSize: "1.2rem",
+        color: "#4285F4",
+        marginRight: "10px",
+    },
+    input: {
+        flex: 1,
+        padding: "10px",
+        border: "none",
+        backgroundColor: "transparent",
+        fontSize: "1rem",
+        outline: "none",
+        color: "#333",
     },
     textarea: {
         width: "100%",
         padding: "10px",
-        marginTop: "10px",
         fontSize: "1rem",
-        borderRadius: "5px",
-        border: "1px solid #ddd",
+        borderRadius: "8px",
+        border: "none",
+        backgroundColor: "#f1f1f1",
+        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+        outline: "none",
+        minHeight: "80px",
+        resize: "vertical",
     },
     submitButton: {
-        padding: "10px",
+        width: "100%",
+        padding: "12px",
         backgroundColor: "#28a745",
         color: "#fff",
         border: "none",
-        borderRadius: "5px",
+        borderRadius: "8px",
+        fontSize: "1.1rem",
+        fontWeight: "bold",
         cursor: "pointer",
-        marginTop: "10px",
+        transition: "background-color 0.3s ease",
     },
     closeButton: {
-        padding: "10px",
+        width: "100%",
+        padding: "12px",
         backgroundColor: "#ccc",
-        color: "#000",
+        color: "#333",
         border: "none",
-        borderRadius: "5px",
+        borderRadius: "8px",
+        fontSize: "1.1rem",
+        fontWeight: "bold",
         cursor: "pointer",
         marginTop: "10px",
-        marginLeft: "10px",
+        transition: "background-color 0.3s ease",
     },
 };
 
