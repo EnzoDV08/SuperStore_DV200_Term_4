@@ -2,7 +2,18 @@
 
 Welcome to **SuperStore**, a user-driven e-commerce platform where buyers and sellers can connect seamlessly. Built with **React** and **Firebase**, this platform enables secure transactions and real-time management of orders and inventory. Sellers can manage their products, track stock, and accept orders, while customers enjoy a smooth shopping experience with order tracking capabilities.
 
-![SuperStore Banner](./frontend/src/assets/Background.png)
+## Table of Contents
+- [Features](#-features)
+- [Mockups](#-mockups)
+- [Tech Stack](#-tech-stack)
+- [Project Setup](#-project-setup)
+- [Database Structure](#-database-structure)
+- [Project Structure](#-project-structure)
+- [ERD Diagram](#-erd-diagram)
+- [Documentation](#-documentation)
+- [Demo](#-demo)
+- [Author](#-author)
+
 
 ## 🚀 Features
 
@@ -81,6 +92,7 @@ To deploy the app to Firebase Hosting, use these commands:
 firebase login
 firebase init
 firebase deploy
+
 🔄 How SuperStore Works
 User Authentication
 SuperStore uses Firebase Authentication, allowing users to sign up and log in using:
@@ -188,12 +200,16 @@ CartContext.js: Handles cart data for seamless shopping experiences.
 OrderManagement.js: Core of the seller's ability to manage and approve orders.
 firebaseConfig.js: Configures Firebase services including Firestore and Storage.
 🌐 Demo
-Check out the live demo of SuperStore here.
+Check out the live demo of SuperStore https://superstore-692fb.web.app/.
 
-🖊️ Author
-Enzo De Vittorio - https://github.com/EnzoDV08/SuperStore_DV200_Term_4.git
-💬 Feedback
-Feel free to contribute, raise issues, or provide suggestions to help improve SuperStore!
+## 🖊️ Author
+
+![Profile Image](/frontend/src/assets/WhatsApp%20Image%202024-11-05%20at%2012.27.26_02892460.jpg)  
+**Enzo De Vittorio**  
+[GitHub](https://github.com/EnzoDV08) | [Email](mailto:enzo.devittorio5@gmail.com) | [Number](073 662 4471)
+
+---
+
 
 Happy Shopping with SuperStore! 🎉
 
