@@ -139,17 +139,18 @@ Product Images: Allows sellers to upload images of products.
 Brand Logos: Sellers can add a logo for their brand, which will be displayed on their products.
 Images are securely stored and referenced in Firestore documents to maintain a clean structure and quick retrieval.
 
-📂 Project Structure
+## 📂 Project Structure
 
+```plaintext
 SUPERSTORE_DV200_TERM_4/
-├── backend/
-├── frontend/
-│   ├── build/
-│   ├── node_modules/
-│   ├── public/
-│   ├── src/
-│   │   ├── assets/
-│   │   ├── components/
+├── backend/                 # Backend code (if applicable)
+├── frontend/                # Main frontend project folder
+│   ├── build/               # Compiled project files
+│   ├── node_modules/        # Project dependencies
+│   ├── public/              # Public assets and files
+│   ├── src/                 # Source files
+│   │   ├── assets/          # Images, icons, and other assets
+│   │   ├── components/      # Reusable UI components
 │   │   │   ├── Breadcrumbs.js
 │   │   │   ├── Categories.js
 │   │   │   ├── Filter.js
@@ -159,10 +160,10 @@ SUPERSTORE_DV200_TERM_4/
 │   │   │   ├── OrderManagement.js
 │   │   │   ├── ProductCard.js
 │   │   │   └── Sidebar.js
-│   │   ├── contexts/
+│   │   ├── contexts/        # Context API for global state management
 │   │   │   ├── AuthContext.js
 │   │   │   └── CartContext.js
-│   │   ├── pages/
+│   │   ├── pages/           # Individual pages of the application
 │   │   │   ├── AccountBilling.js
 │   │   │   ├── AccountDetails.js
 │   │   │   ├── CheckoutPage.js
@@ -179,15 +180,26 @@ SUPERSTORE_DV200_TERM_4/
 │   │   │   ├── SignUp.js
 │   │   │   ├── Wishlist.js
 │   │   │   └── SignUpAnimations.css
-│   │   ├── App.css
-│   │   ├── App.js
-│   │   ├── firebaseConfig.js
-│   │   ├── index.css
-│   │   └── index.js
-├── .gitignore
-├── firebase.json
-├── firestore.rules
-└── README.md
+│   │   ├── App.css          # Global CSS styles
+│   │   ├── App.js           # Main app component
+│   │   ├── firebaseConfig.js # Firebase configuration file
+│   │   ├── index.css        # Global styling
+│   │   └── index.js         # Entry point
+├── .gitignore               # Git ignore file
+├── firebase.json            # Firebase configuration
+├── firestore.rules          # Firestore security rules
+└── README.md                # Project documentation
+
+Key:
+Folders:
+backend/: Contains backend files if applicable.
+frontend/: Main folder for the frontend application.
+src/: Source code, organized into folders for assets, components, contexts, and pages.
+Important Files:
+firebaseConfig.js: Firebase configurations.
+App.js: Root app component.
+.gitignore: Lists files and folders for Git to ignore.
+
 
 📖 Documentation
 Important Components
