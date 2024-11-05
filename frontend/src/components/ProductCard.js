@@ -267,17 +267,39 @@ const handleRemoveFromCart = async (e) => {
             flexDirection: "column",
             justifyContent: "center",
         },
+         outOfStockLabel: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    backgroundColor: "rgba(255, 0, 0, 0.85)",  // Bold red with slight transparency
+    color: "#fff",
+    padding: "20px 50px",
+    fontSize: "1.8rem",
+    fontWeight: "bold",
+    textAlign: "center",
+    borderRadius: "10px",
+    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",  // Shadow for depth
+    letterSpacing: "1px",  // Slight letter spacing for emphasis
+    zIndex: 3,
+    textTransform: "uppercase",  // All uppercase for a stronger impact
+    pointerEvents: "none",  // Prevent clicks on the label
+},
+
     };
 
      return (
-          <div
-            style={styles.card}
-            onClick={handleClick}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-        >
+       <div
+        style={styles.card}
+        onClick={handleClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+    >
             <div style={styles.imageContainer}>
-                <img src={product.imageUrl} alt={product.name} style={styles.image} />
+            <img src={product.imageUrl} alt={product.name} style={styles.image} />
+             {product.stock === 0 && (
+                    <div style={styles.outOfStockLabel}>Out of Stock</div>
+                )}
                 {product.discount > 0 && (
                     <div style={styles.discountLabel}>{product.discount}% OFF</div>
                 )}

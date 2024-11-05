@@ -53,7 +53,7 @@ const ProductsPage = () => {
     };
 
     const styles = {
-        container: { display: "flex", justifyContent: "center", padding: "20px", marginTop: "60px" },
+             container: { display: "flex", justifyContent: "center", padding: "20px", marginTop: "60px" },
         rightSidebar: { width: "25%", padding: "10px", marginLeft: "20px" },
         mainContent: { width: "60%", padding: "10px" },
         productGrid: {

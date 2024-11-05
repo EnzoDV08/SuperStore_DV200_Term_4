@@ -149,9 +149,13 @@ const discountedPrice = product?.price && product?.discount
       <div style={styles.container}>
       <ToastContainer />
       <div style={styles.imageContainer}>
-        {product?.discount > 0 && (
-          <div style={styles.discountLabel}>{product.discount}% OFF</div>
-        )}
+        {product?.stock === 0 && (
+    <div style={styles.outOfStockLabel}>Out of Stock</div>
+  )}
+  {product?.discount > 0 && (
+    <div style={styles.discountLabel}>{product.discount}% OFF</div>
+  )}
+
         <img src={product?.imageUrl} alt={product?.name} style={styles.image} />
       </div>
 
@@ -267,7 +271,7 @@ const styles = {
   },
   image: {
     width: "100%",
-    maxWidth: "400px",
+    maxWidth: "700px",
     borderRadius: "12px",
     boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
   },
@@ -430,4 +434,23 @@ priceContainer: {
     fontWeight: "bold",
   },
    noPrice: { color: "#999" },
+   outOfStockLabel: {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  backgroundColor: "rgba(255, 0, 0, 0.85)", // Bold red with slight transparency
+  color: "#fff",
+  padding: "20px 40px",
+  fontSize: "2rem",
+  fontWeight: "bold",
+  textAlign: "center",
+  borderRadius: "10px",
+  boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)", // Shadow for depth
+  letterSpacing: "1px", // Slight letter spacing for emphasis
+  zIndex: 2,
+  textTransform: "uppercase", // All uppercase for stronger impact
+  pointerEvents: "none", // Prevent clicks on the label
+},
+
 };
