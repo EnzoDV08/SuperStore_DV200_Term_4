@@ -18,6 +18,7 @@ Check out our mockups to visualize SuperStore's interface:
 - **Landing Page:** [Mockup Link](/frontend/src/assets/ScreenShot1.png)
 - **Seller Dashboard:** [Mockup Link](/frontend/src/assets/ScreenShot2.png)
 - **Order Summary Page:** [Mockup Link](/frontend/src/assets/ScreenShot3.png)
+![SuperStore Banner](./frontend/src/assets/192.png)
 
 ## 🛠️ Tech Stack
 
