@@ -2,7 +2,7 @@
 
 Welcome to **SuperStore**, a user-driven e-commerce platform where buyers and sellers can connect seamlessly. Built with **React** and **Firebase**, this platform enables secure transactions and real-time management of orders and inventory. Sellers can manage their products, track stock, and accept orders, while customers enjoy a smooth shopping experience with order tracking capabilities.
 
-![SuperStore Banner](link-to-your-banner-image)
+![SuperStore Banner](./frontend/src/assets/Background.png)
 
 ## 🚀 Features
 
