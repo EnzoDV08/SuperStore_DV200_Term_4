@@ -25,6 +25,7 @@ Check out our mockups to visualize SuperStore's interface:
 ![Firebase Badge](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=white)
 ![GitHub Badge](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
 ![VS Code Badge](https://img.shields.io/badge/VS%20Code-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white)
+![SuperStore Banner](./frontend/src/assets/192.png)
 
 - **Frontend:** React
 - **Backend/Database:** Firebase Firestore
