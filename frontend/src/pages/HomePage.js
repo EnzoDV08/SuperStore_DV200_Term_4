@@ -1,4 +1,3 @@
-// src/pages/HomePage.js
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { firestore } from '../firebaseConfig';
@@ -57,7 +56,7 @@ const HomePage = () => {
   }, [activeCardIndex]);
 
 
-  const styles = {
+    const styles = {
     body: {
       overflowX: 'hidden',
     },
@@ -196,11 +195,11 @@ const HomePage = () => {
     promotionCardText: {
   position: 'relative',
   zIndex: 2,
-  fontSize: '32px', // Reduced size for better alignment
+  fontSize: '32px',
   fontWeight: 'bold',
   color: 'white',
   textAlign: 'left', // Align text to the left
-  margin: '0', // Remove any default margin
+  margin: '0',
   lineHeight: '1.2', // Adjust line height for better spacing
 },
 
@@ -304,7 +303,6 @@ categoryIconHover: {
       marginTop: '50px',
     },
   };
-
   const [hoveredButton, setHoveredButton] = useState(null);
 
   return (
@@ -581,8 +579,14 @@ categoryIconHover: {
           ))}
         </div>
       </div>
+
+      
     </div>
+
+
+
   );
+  
 };
 
 export default HomePage;

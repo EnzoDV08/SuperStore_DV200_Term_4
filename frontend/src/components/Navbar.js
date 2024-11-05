@@ -553,18 +553,7 @@ cartCounterHover: {
     >
       Special Offers
     </span>
-    <span
-      style={styles.secondNavbarItem(hoveredIcon === 'quickFind')}
-      onClick={toggleQuickFind}
-      onMouseEnter={() => setHoveredIcon('quickFind')}
-      onMouseLeave={() => setHoveredIcon(null)}
-    >
-      Quick find <FontAwesomeIcon icon={faChevronDown} />
-      <div style={styles.quickFindDropdown}>
-        <div>Category 1</div>
-        <div>Category 2</div>
-      </div>
-    </span>
+  
     <span
       style={styles.secondNavbarItem(hoveredIcon === 'contact')}
       onMouseEnter={() => setHoveredIcon('contact')}

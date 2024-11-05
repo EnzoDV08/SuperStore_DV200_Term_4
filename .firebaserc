@@ -1,5 +1,11 @@
 {
   "projects": {
     "default": "superstore-692fb"
+  },
+  "targets": {},
+  "etags": {
+    "superstore-692fb": {
+      "extensionInstances": {}
+    }
   }
 }

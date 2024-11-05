@@ -81,20 +81,24 @@ const SellerDashboard = () => {
         }
     };
 
-    const fetchOrders = async (user) => {
-        try {
-            const ordersRef = collection(firestore, "orders");
-            const ordersQuery = query(ordersRef, where("sellerId", "==", user.uid));
-            const snapshot = await getDocs(ordersQuery);
-            const userOrders = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-            setOrders(userOrders);
-        } catch (error) {
-            console.error("Error fetching orders:", error.message);
-        }
-    };
+const fetchOrders = async (user) => {
+    try {
+        const ordersRef = collection(firestore, "orders");
+        const ordersQuery = query(ordersRef, where("items.sellerId", "==", user.uid)); // Filter orders by sellerId
+        const snapshot = await getDocs(ordersQuery);
+
+        const userOrders = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            items: doc.data().items.filter(item => item.sellerId === user.uid), // Filter items for this seller
+        }));
+
+        setOrders(userOrders);
+    } catch (error) {
+        console.error("Error fetching orders:", error.message);
+    }
+};
+
 
    const handleSizeToggle = (size) => {
         setSelectedSizes((prevSizes) =>

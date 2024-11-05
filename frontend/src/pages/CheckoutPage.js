@@ -47,6 +47,7 @@ const CheckoutPage = () => {
         };
     }, []);
 
+
     const calculateSubtotal = () => {
         return cart.reduce((total, item) => {
             const price = item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price;
@@ -71,7 +72,7 @@ const CheckoutPage = () => {
     const estimatedTax = (subtotal * 0.15).toFixed(2); // 15% tax rate
     const total = (subtotal - discountTotal + parseFloat(estimatedTax)).toFixed(2);
 
-    const applyDiscount = () => {
+     const applyDiscount = () => {
         if (discountCode === "SAVE10") {
             setDiscountApplied(true);
             toast.success("Discount applied!");
@@ -80,65 +81,75 @@ const CheckoutPage = () => {
         }
     };
 
-    const placeOrder = async () => {
-        const user = auth.currentUser;
-        if (!user || cart.length === 0) {
-            toast.warn("Please add items to the cart before placing an order.");
-            return;
-        }
 
-        try {
-            const orderData = {
-                buyerId: user.uid,
-                items: cart.map((item) => ({
-                    id: item.id,
-                    name: item.name,
-                    quantity: item.quantity,
-                    price: item.price,
-                    sellerId: item.sellerId,
-                    imageUrl: item.imageUrl,
-                    discountedPrice: item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price,
-                })),
-                totalAmount: total,
-                location: location,
-                bankDetails: bankDetails,
-                status: "Pending",
-                createdAt: new Date(),
-            };
-            await setDoc(doc(firestore, "orders", `${user.uid}_${Date.now()}`), orderData);
+    
+   const placeOrder = async () => {
+    const user = auth.currentUser;
+    if (!user || cart.length === 0) {
+        toast.warn("Please add items to the cart before placing an order.");
+        return;
+    }
 
-            // Update each product's stock and soldCount
-            for (const item of cart) {
-                const productRef = doc(firestore, "products", item.id);
-                const productSnapshot = await getDoc(productRef);
-                
-                if (productSnapshot.exists()) {
-                    const productData = productSnapshot.data();
-                    const newStock = (productData.stock || 0) - item.quantity;
-                    const newSoldCount = (productData.soldCount || 0) + item.quantity;
+    try {
+        toast.info("Processing payment...");
 
-                    // Ensure stock doesn't go negative
-                    if (newStock >= 0) {
-                        await updateDoc(productRef, {
-                            stock: newStock,
-                            soldCount: newSoldCount
-                        });
-                    } else {
-                        toast.error(`Insufficient stock for ${item.name}. Please adjust your quantity.`);
-                        return;
-                    }
+        // Simulate a delay for the fake payment process
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const orderData = {
+            buyerId: user.uid,
+            items: cart.map((item) => ({
+                id: item.id,
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+                sellerId: item.sellerId, // Ensure sellerId is included in each order item
+                imageUrl: item.imageUrl,
+                discountedPrice: item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price,
+            })),
+            totalAmount: total,
+            location: location, // Add location field
+            bankDetails: bankDetails,
+            status: "Order Confirmed", // Initial status for order tracking
+            createdAt: new Date(),
+        };
+
+        // Store order in Firestore
+        await setDoc(doc(firestore, "orders", `${user.uid}_${Date.now()}`), orderData);
+
+        // Simulate updating stock and sold count in products
+        for (const item of cart) {
+            const productRef = doc(firestore, "products", item.id);
+            const productSnapshot = await getDoc(productRef);
+
+            if (productSnapshot.exists()) {
+                const productData = productSnapshot.data();
+                const newStock = (productData.stock || 0) - item.quantity;
+                const newSoldCount = (productData.soldCount || 0) + item.quantity;
+
+                if (newStock >= 0) {
+                    await updateDoc(productRef, {
+                        stock: newStock,
+                        soldCount: newSoldCount,
+                    });
                 } else {
-                    console.error(`Product ${item.id} not found`);
+                    toast.error(`Insufficient stock for ${item.name}. Please adjust your quantity.`);
+                    return;
                 }
+            } else {
+                console.error(`Product ${item.id} not found`);
             }
-
-            clearCart();
-            toast.success("Order placed! Awaiting seller approval.");
-        } catch (error) {
-            console.error("Error placing order:", error);
-            toast.error("Failed to place order. Please try again.");
         }
-    };
+
+        clearCart();
+        toast.success("Order placed! You can track it in your order history.");
+    } catch (error) {
+        console.error("Error placing order:", error);
+        toast.error("Failed to place order. Please try again.");
+    }
+};
+
+
 
     const styles = {
         checkoutPage: {
@@ -214,18 +225,12 @@ const CheckoutPage = () => {
             fontSize: '20px',
             fontWeight: 'bold',
         },
-        summaryContainer: {
+          summaryContainer: {
             flex: 1,
-            height: '100vh',
-            position: 'sticky',
-            top: '0',
             padding: '20px',
             border: '1px solid #ddd',
             borderRadius: '8px',
             backgroundColor: '#f9f9f9',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
         },
         summaryHeader: {
@@ -262,25 +267,13 @@ const CheckoutPage = () => {
             fontSize: '1rem',
             fontWeight: '600',
         },
-        checkoutButton: {
-            width: '100%',
-            padding: '10px 0',
-            backgroundColor: '#ff9f00',
-            border: 'none',
-            borderRadius: '5px',
-            color: 'white',
-            fontSize: '1.2rem',
-            cursor: 'pointer',
-            marginTop: '15px',
-            fontWeight: '600',
-        },
         sectionContainer: {
             marginTop: '20px',
-            padding: '15px',
+            padding: '20px',
             border: '1px solid #ddd',
-            borderRadius: '4px',
+            borderRadius: '8px',
             backgroundColor: '#fff',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
         },
         sectionHeader: {
             display: 'flex',
@@ -288,11 +281,35 @@ const CheckoutPage = () => {
             fontSize: '1.2rem',
             fontWeight: 'bold',
             color: '#333',
-            marginBottom: '10px',
+            marginBottom: '15px',
         },
-        sectionIcon: {
+         sectionIcon: {
             marginRight: '10px',
             color: '#007bff',
+        },
+        inputContainer: {
+            display: 'flex',
+            flexDirection: 'column',
+            marginBottom: '15px',
+        },
+        inputLabel: {
+            fontSize: '0.9rem',
+            color: '#555',
+            marginBottom: '5px',
+            fontWeight: '500',
+        },
+        inputField: {
+            padding: '10px',
+            border: '1px solid #ddd',
+            borderRadius: '5px',
+            fontSize: '1rem',
+            backgroundColor: '#f8f8f8',
+            boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)',
+            transition: 'border-color 0.3s ease',
+        },
+        inputFieldFocus: {
+            borderColor: '#007bff',
+            outline: 'none',
         },
         disclaimer: {
             fontSize: '0.8rem',
@@ -304,6 +321,20 @@ const CheckoutPage = () => {
         disclaimerIcon: {
             marginRight: '5px',
             color: '#ff4c4c',
+        },
+        checkoutButton: {
+            padding: '15px',
+            backgroundColor: '#ff9f00',
+            border: 'none',
+            borderRadius: '5px',
+            color: 'white',
+            fontSize: '1.2rem',
+            cursor: 'pointer',
+            fontWeight: '600',
+            marginTop: '15px',
+            width: '100%',
+            boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+            transition: 'background-color 0.3s ease',
         },
     };
 
@@ -377,38 +408,57 @@ const CheckoutPage = () => {
                         <span>Total</span>
                         <span style={styles.totalPriceContainer}>R{total}</span>
                     </div>
+                   
                     <div style={styles.sectionContainer}>
                         <div style={styles.sectionHeader}>
                             <FaMapMarkerAlt style={styles.sectionIcon} />
                             Delivery Location
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Enter your location"
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            style={styles.locationInput}
-                        />
+                        <div style={styles.inputContainer}>
+                            <label style={styles.inputLabel} htmlFor="location">Location</label>
+                            <input
+                                type="text"
+                                id="location"
+                                placeholder="Enter your location"
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
+                                style={styles.inputField}
+                                onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                                onBlur={(e) => e.target.style.borderColor = '#ddd'}
+                            />
+                        </div>
                     </div>
                     <div style={styles.sectionContainer}>
                         <div style={styles.sectionHeader}>
                             <FaCreditCard style={styles.sectionIcon} />
                             Billing Information
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Account Holder Name"
-                            value={bankDetails.accountHolder}
-                            onChange={(e) => setBankDetails({ ...bankDetails, accountHolder: e.target.value })}
-                            style={styles.bankInput}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Account Number"
-                            value={bankDetails.accountNumber}
-                            onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
-                            style={styles.bankInput}
-                        />
+                        <div style={styles.inputContainer}>
+                            <label style={styles.inputLabel} htmlFor="accountHolder">Account Holder Name</label>
+                            <input
+                                type="text"
+                                id="accountHolder"
+                                placeholder="Account Holder Name"
+                                value={bankDetails.accountHolder}
+                                onChange={(e) => setBankDetails({ ...bankDetails, accountHolder: e.target.value })}
+                                style={styles.inputField}
+                                onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                                onBlur={(e) => e.target.style.borderColor = '#ddd'}
+                            />
+                        </div>
+                        <div style={styles.inputContainer}>
+                            <label style={styles.inputLabel} htmlFor="accountNumber">Account Number</label>
+                            <input
+                                type="text"
+                                id="accountNumber"
+                                placeholder="Account Number"
+                                value={bankDetails.accountNumber}
+                                onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                                style={styles.inputField}
+                                onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                                onBlur={(e) => e.target.style.borderColor = '#ddd'}
+                            />
+                        </div>
                     </div>
                     <div style={styles.disclaimer}>
                         <FaExclamationCircle style={styles.disclaimerIcon} />

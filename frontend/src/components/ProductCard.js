@@ -55,7 +55,7 @@ useEffect(() => {
         discount: product.discount || 0,
         quantity: 1,
         addedBy: user.uid,
-        sellerId: product.sellerId || "unknown"
+        sellerId: product.sellerId || "unknown" // Ensure sellerId is correctly set here
     };
 
     try {

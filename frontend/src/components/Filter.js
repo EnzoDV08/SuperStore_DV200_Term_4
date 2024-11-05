@@ -2,35 +2,72 @@
 
 import React, { useState } from "react";
 
-const Filter = () => {
-    const [priceRange, setPriceRange] = useState([10, 100]);
+const Filter = ({ onPriceRangeChange }) => {
+    const [minPrice, setMinPrice] = useState(10);
+    const [maxPrice, setMaxPrice] = useState(10000);
 
-    const handleSliderChange = (e) => {
-        const [min, max] = e.target.value.split(",").map(Number);
-        setPriceRange([min, max]);
+    const handlePriceChange = () => {
+        onPriceRangeChange([minPrice, maxPrice]);
+    };
+
+    const handlePresetClick = (range) => {
+        setMinPrice(range[0]);
+        setMaxPrice(range[1]);
+        onPriceRangeChange(range);
     };
 
     const styles = {
         container: {
-            backgroundColor: "#f5f8fa",
+            backgroundColor: "#f9fbfc",
             padding: "20px",
-            borderRadius: "10px",
+            borderRadius: "12px",
             textAlign: "center",
-            marginBottom: "20px",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
         },
         heading: {
             backgroundColor: "#32CD32",
             color: "#fff",
             borderRadius: "8px",
-            padding: "8px",
+            padding: "10px",
             fontWeight: "bold",
+            fontSize: "1.2rem",
+            marginBottom: "15px",
         },
-        slider: {
-            width: "100%",
+        inputContainer: {
+            display: "flex",
+            justifyContent: "center",
+            gap: "10px",
+            marginBottom: "15px",
+        },
+        input: {
+            width: "100px",
+            padding: "8px",
+            borderRadius: "8px",
+            border: "1px solid #ddd",
+            fontSize: "1rem",
+            textAlign: "center",
+        },
+        presetContainer: {
+            display: "flex",
+            gap: "10px",
+            justifyContent: "center",
             marginTop: "15px",
         },
+        presetButton: {
+            padding: "8px 16px",
+            borderRadius: "8px",
+            backgroundColor: "#e0e0e0",
+            color: "#333",
+            cursor: "pointer",
+            border: "none",
+            transition: "background-color 0.3s ease",
+        },
+        presetButtonActive: {
+            backgroundColor: "#32CD32",
+            color: "#fff",
+        },
         filterButton: {
-            marginTop: "10px",
+            marginTop: "15px",
             padding: "10px 20px",
             borderRadius: "8px",
             backgroundColor: "#32CD32",
@@ -44,17 +81,50 @@ const Filter = () => {
     return (
         <div style={styles.container}>
             <h3 style={styles.heading}>Filter by Price</h3>
-            <input
-                type="range"
-                min="10"
-                max="100"
-                value={priceRange}
-                onChange={handleSliderChange}
-                style={styles.slider}
-                multiple
-            />
-            <p>Price: ${priceRange[0]} — ${priceRange[1]}</p>
-            <button style={styles.filterButton}>Filter</button>
+            <div style={styles.inputContainer}>
+                <input
+                    type="number"
+                    value={minPrice}
+                    min="0"
+                    max={maxPrice}
+                    onChange={(e) => setMinPrice(Number(e.target.value))}
+                    placeholder="Min R"
+                    style={styles.input}
+                />
+                <span>—</span>
+                <input
+                    type="number"
+                    value={maxPrice}
+                    min={minPrice}
+                    max="10000"
+                    onChange={(e) => setMaxPrice(Number(e.target.value))}
+                    placeholder="Max R"
+                    style={styles.input}
+                />
+            </div>
+            <button style={styles.filterButton} onClick={handlePriceChange}>
+                Apply
+            </button>
+            <div style={styles.presetContainer}>
+                <button
+                    style={{ ...styles.presetButton, ...(minPrice === 0 && maxPrice === 500 ? styles.presetButtonActive : {}) }}
+                    onClick={() => handlePresetClick([0, 500])}
+                >
+                    Under R500
+                </button>
+                <button
+                    style={{ ...styles.presetButton, ...(minPrice === 500 && maxPrice === 2000 ? styles.presetButtonActive : {}) }}
+                    onClick={() => handlePresetClick([500, 2000])}
+                >
+                    R500 - R2000
+                </button>
+                <button
+                    style={{ ...styles.presetButton, ...(minPrice === 2000 ? styles.presetButtonActive : {}) }}
+                    onClick={() => handlePresetClick([2000, 10000])}
+                >
+                    Above R2000
+                </button>
+            </div>
         </div>
     );
 };

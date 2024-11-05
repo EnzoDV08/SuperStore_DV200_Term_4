@@ -1,4 +1,3 @@
-// src/components/LargeProductCard.js
 import React, { useState } from "react";
 import { FiHeart, FiShuffle, FiSearch, FiShoppingCart } from "react-icons/fi";
 import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
@@ -37,6 +36,16 @@ const LargeProductCard = ({ product = {} }) => {
         } catch (error) {
             console.error("Error adding to wishlist:", error);
         }
+    };
+
+    const handleQuickView = (e) => {
+        e.stopPropagation();
+        navigate(`/product/${product.id}`);
+    };
+
+    const handleCompare = (e) => {
+        e.stopPropagation();
+        navigate('/compare');
     };
 
     const imageUrl = product?.imageUrl || "https://via.placeholder.com/350x300";
@@ -181,11 +190,12 @@ const LargeProductCard = ({ product = {} }) => {
         },
     };
 
-    return (
-       <div
+     return (
+        <div
             style={styles.card}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
+            onClick={() => navigate(`/product/${product.id}`)} // Navigate to ProductDetails on card click
         >
             <div style={styles.imageContainer}>
                 <img src={imageUrl} alt={name} style={styles.image} />
@@ -204,10 +214,22 @@ const LargeProductCard = ({ product = {} }) => {
                     >
                         <FiHeart />
                     </div>
-                    <div style={styles.iconButton(iconHovered === 'compare')} title="Compare">
+                    <div
+                        style={styles.iconButton(iconHovered === 'compare')}
+                        onClick={handleCompare} // Navigate to Compare.js
+                        onMouseEnter={() => setIconHovered('compare')}
+                        onMouseLeave={() => setIconHovered(null)}
+                        title="Compare"
+                    >
                         <FiShuffle />
                     </div>
-                    <div style={styles.iconButton(iconHovered === 'quickview')} title="Quick View">
+                    <div
+                        style={styles.iconButton(iconHovered === 'quickview')}
+                        onClick={handleQuickView} // Navigate to ProductDetails
+                        onMouseEnter={() => setIconHovered('quickview')}
+                        onMouseLeave={() => setIconHovered(null)}
+                        title="Quick View"
+                    >
                         <FiSearch />
                     </div>
                 </div>

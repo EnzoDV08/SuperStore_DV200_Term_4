@@ -26,6 +26,7 @@ const Breadcrumbs = () => {
       alignItems: "center",
       fontWeight: "bold",
       color: "#333",
+      marginBottom: "-30px",
     },
     currentIcon: {
       marginRight: "0.5rem",
@@ -39,6 +40,8 @@ const Breadcrumbs = () => {
     rightSection: {
       display: "flex",
       alignItems: "center",
+      marginBottom: "-30px",
+
     },
     breadcrumbList: {
       display: "flex",
