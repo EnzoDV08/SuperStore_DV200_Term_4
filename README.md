@@ -15,9 +15,9 @@ Welcome to **SuperStore**, a user-driven e-commerce platform where buyers and se
 
 Check out our mockups to visualize SuperStore's interface:
 
-- **Landing Page:** [Mockup Link](#)
-- **Seller Dashboard:** [Mockup Link](#)
-- **Order Summary Page:** [Mockup Link](#)
+- **Landing Page:** [Mockup Link](/frontend/src/assets/ScreenShot1.png)
+- **Seller Dashboard:** [Mockup Link](/frontend/src/assets/ScreenShot2.png)
+- **Order Summary Page:** [Mockup Link](/frontend/src/assets/ScreenShot3.png)
 
 ## 🛠️ Tech Stack
 
