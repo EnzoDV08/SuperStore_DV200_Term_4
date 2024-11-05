@@ -69,7 +69,7 @@ const CheckoutPage = () => {
 
     const subtotal = calculateSubtotal();
     const discountTotal = calculateDiscount();
-    const estimatedTax = (subtotal * 0.15).toFixed(2); // 15% tax rate
+    const estimatedTax = (subtotal * 0.15).toFixed(2); 
     const total = (subtotal - discountTotal + parseFloat(estimatedTax)).toFixed(2);
 
      const applyDiscount = () => {
@@ -83,7 +83,7 @@ const CheckoutPage = () => {
 
 
     
-   const placeOrder = async () => {
+ const placeOrder = async () => {
     const user = auth.currentUser;
     if (!user || cart.length === 0) {
         toast.warn("Please add items to the cart before placing an order.");
@@ -103,21 +103,24 @@ const CheckoutPage = () => {
                 name: item.name,
                 quantity: item.quantity,
                 price: item.price,
-                sellerId: item.sellerId, // Ensure sellerId is included in each order item
+                sellerId: item.sellerId,
                 imageUrl: item.imageUrl,
                 discountedPrice: item.discount > 0 ? item.price * (1 - item.discount / 100) : item.price,
             })),
             totalAmount: total,
-            location: location, // Add location field
+            location: location,
             bankDetails: bankDetails,
-            status: "Order Confirmed", // Initial status for order tracking
+            status: "Order Confirmed",
             createdAt: new Date(),
         };
+
+        // Log the order data to debug undefined values
+        console.log("Order Data:", orderData);
 
         // Store order in Firestore
         await setDoc(doc(firestore, "orders", `${user.uid}_${Date.now()}`), orderData);
 
-        // Simulate updating stock and sold count in products
+        // Update stock, sold count, and total sales for each product
         for (const item of cart) {
             const productRef = doc(firestore, "products", item.id);
             const productSnapshot = await getDoc(productRef);
@@ -126,11 +129,13 @@ const CheckoutPage = () => {
                 const productData = productSnapshot.data();
                 const newStock = (productData.stock || 0) - item.quantity;
                 const newSoldCount = (productData.soldCount || 0) + item.quantity;
+                const totalSales = (productData.totalSales || 0) + (item.price * item.quantity);
 
                 if (newStock >= 0) {
                     await updateDoc(productRef, {
                         stock: newStock,
                         soldCount: newSoldCount,
+                        totalSales: totalSales,
                     });
                 } else {
                     toast.error(`Insufficient stock for ${item.name}. Please adjust your quantity.`);

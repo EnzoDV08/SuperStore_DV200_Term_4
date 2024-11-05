@@ -18,7 +18,7 @@ import OrderTracking from "./pages/OrderTracking";
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import Breadcrumb from "./components/Breadcrumbs"; // Import Breadcrumb component
+import Breadcrumb from "./components/Breadcrumbs"; 
 import { doc, getDoc } from "firebase/firestore";
 
 function App() {
@@ -32,7 +32,7 @@ function App() {
             if (currentUser) {
                 const userDoc = await getDoc(doc(firestore, "users", currentUser.uid));
                 if (userDoc.exists()) {
-                    setUserRole(userDoc.data().role); // 'buyer' or 'seller'
+                    setUserRole(userDoc.data().role); 
                 }
             } else {
                 setUserRole(null);
@@ -52,7 +52,7 @@ function App() {
             <CartProvider>
                 <Router>
                     <Navbar user={user} />
-                    <ConditionalBreadcrumb /> {/* Display Breadcrumb conditionally */}
+                    <ConditionalBreadcrumb /> 
                     <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="/products" element={<ProductsPage />} />
