@@ -216,6 +216,8 @@ OrderManagement.js: Core of the seller's ability to manage and approve orders.
 firebaseConfig.js: Configures Firebase services including Firestore and Storage.
 🌐 Demo
 Check out the live demo of SuperStore https://superstore-692fb.web.app/.
+🌐 Demo Video
+https://drive.google.com/file/d/1givMPSqHptkgIC7Q_7-SYozxLdMHFKbD/view?usp=sharing
 
 ## 🖊️ The Main Guy 
 
